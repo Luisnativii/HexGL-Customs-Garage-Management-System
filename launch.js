@@ -84,14 +84,36 @@
     return $('credits').style.display = 'none';
   };
 
+  function returnToMenu() {
+    $('garage').style.display = 'none';
+    $('step-1').style.display = 'block';
+  }
+
+  function saveGarageState() {
+    var savedState;
+    savedState = {
+      savedAt: new Date().toISOString(),
+      garageClosed: false
+    };
+    try {
+      window.localStorage.setItem('hexgl.garageState', JSON.stringify(savedState));
+    } catch (e) {}
+    alert('Garage guardado correctamente.');
+  }
+
   $('s-garage').onclick = function() {
     $('step-1').style.display = 'none';
     return $('garage').style.display = 'block';
   };
 
-  $('garage').onclick = function() {
-    $('step-1').style.display = 'block';
-    return $('garage').style.display = 'none';
+  $('garage-save').onclick = function(event) {
+    saveGarageState();
+    return false;
+  };
+
+  $('garage-back').onclick = function(event) {
+    returnToMenu();
+    return false;
   };
 
   hasWebGL = function() {

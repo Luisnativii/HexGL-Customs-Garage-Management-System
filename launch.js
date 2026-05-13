@@ -87,6 +87,15 @@
   function returnToMenu() {
     $('garage').style.display = 'none';
     $('step-1').style.display = 'block';
+    GarageRenderer.destroy();
+  }
+
+  function preventGarageClickBubble(event) {
+    if (!event) return;
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) {
+      event.stopImmediatePropagation();
+    }
   }
 
   function saveGarageState() {
@@ -103,15 +112,28 @@
 
   $('s-garage').onclick = function() {
     $('step-1').style.display = 'none';
-    return $('garage').style.display = 'block';
+    $('garage').style.display = 'block';
+    GarageRenderer.init($('garage'));
   };
 
+  function setupGarageListeners() {
+    $('garage').addEventListener('click', preventGarageClickBubble);
+    var canvasEl = $('garage-canvas');
+    if (canvasEl) {
+      canvasEl.addEventListener('click', preventGarageClickBubble);
+    }
+  }
+
+  setupGarageListeners();
+
   $('garage-save').onclick = function(event) {
+    preventGarageClickBubble(event);
     saveGarageState();
     return false;
   };
 
   $('garage-back').onclick = function(event) {
+    preventGarageClickBubble(event);
     returnToMenu();
     return false;
   };

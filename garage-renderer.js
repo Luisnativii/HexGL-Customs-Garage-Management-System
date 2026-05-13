@@ -63,10 +63,16 @@
       canvas.style.width = '100%';
       canvas.style.height = '100%';
 
-      console.log('Renderer appended. Canvas element:', canvas);
-      console.log('Canvas size (attr):', canvas.width, 'x', canvas.height);
-      console.log('Canvas size (style):', canvas.style.width, 'x', canvas.style.height);
+      // Add lighting
+      var ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+      garageScene.add(ambientLight);
 
+      var directionalLight = new THREE.DirectionalLight(0xffffff, 0.1);
+      directionalLight.position.set(5, 10, 5);
+      garageScene.add(directionalLight);
+
+      // Create display base
+      this.createDisplayBase();
 
       // Start animation loop
       this.animate();
@@ -80,17 +86,7 @@
     animate: function() {
       garageAnimId = requestAnimationFrame(GarageRenderer.animate);
 
-      if (garageMesh) {
-        garageMesh.rotation.x += 0.005;
-        garageMesh.rotation.y += 0.008;
-        garageMesh.rotation.z += 0.003;
-      }
-
-      if (garageRenderer && garageScene && garageCamera) {
-        garageRenderer.render(garageScene, garageCamera);
-      } else {
-        console.warn('Cannot render - missing renderer, scene, or camera');
-      }
+      garageRenderer.render(garageScene, garageCamera);
     },
 
     // Handle window resize
@@ -106,6 +102,25 @@
       garageCamera.aspect = width / height;
       garageCamera.updateProjectionMatrix();
       garageRenderer.setSize(width, height);
+    },
+
+    // Create display base (non-rotating circular platform)
+    createDisplayBase: function() {
+      // Create a cylinder with low height to look like a disk/circle on the floor
+      var geometry = new THREE.CylinderGeometry(8, 8, 0.5, 32);
+      
+      // Create material using BasicMaterial for reliable color display
+      var material = new THREE.MeshBasicMaterial({
+        color: 0x1a4d7f
+      });
+
+      var displayBase = new THREE.Mesh(geometry, material);
+      
+      // Position on the floor, below the vehicle
+      displayBase.position.y = -3;
+      
+      // Add to scene
+      garageScene.add(displayBase);
     },
 
     // Stop rendering and clean up

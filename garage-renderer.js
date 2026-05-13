@@ -59,18 +59,14 @@
       var canvas = garageRenderer.domElement;
       canvas.style.position = 'absolute';
       canvas.style.left = '0';
-      canvas.style.top = '0';
+      canvas.style.top = '8%';
       canvas.style.width = '100%';
       canvas.style.height = '100%';
-      canvas.style.display = 'block';
-      canvas.style.zIndex = '9999';
 
       console.log('Renderer appended. Canvas element:', canvas);
       console.log('Canvas size (attr):', canvas.width, 'x', canvas.height);
       console.log('Canvas size (style):', canvas.style.width, 'x', canvas.style.height);
 
-      // Create a simple triangle geometry
-      this.createTriangle();
 
       // Start animation loop
       this.animate();
@@ -79,23 +75,6 @@
       window.addEventListener('resize', GarageRenderer.onWindowResize);
     },
 
-    // Create a simple cube using r53-compatible APIs (CubeGeometry)
-    createTriangle: function() {
-      // CubeGeometry is the r53 name for modern BoxGeometry
-      var geometry = new THREE.CubeGeometry(2, 2, 2);
-
-      // Material: simple basic material (no lighting required)
-      var material = new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
-        wireframe: true
-      });
-
-      // Create mesh and add to scene
-      garageMesh = new THREE.Mesh(geometry, material);
-      garageScene.add(garageMesh);
-
-      console.log('Cube created and added to scene');
-    },
 
     // Animation loop
     animate: function() {

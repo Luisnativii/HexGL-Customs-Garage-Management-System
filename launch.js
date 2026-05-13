@@ -84,6 +84,16 @@
     return $('credits').style.display = 'none';
   };
 
+  $('s-garage').onclick = function() {
+    $('step-1').style.display = 'none';
+    return $('garage').style.display = 'block';
+  };
+
+  $('garage').onclick = function() {
+    $('step-1').style.display = 'block';
+    return $('garage').style.display = 'none';
+  };
+
   hasWebGL = function() {
     var canvas, gl;
     gl = null;

@@ -410,6 +410,36 @@ bkcore.hexgl.tracks.Cityscape = {
 
 		var boosterLight = new THREE.PointLight(0x00a2ff, 4.0, 60);
 		boosterLight.position.set(0, 0.665, -4);
+
+		// ── Apply garage customization (if saved) ──
+		try {
+			var rawCustom = window.localStorage.getItem('hexgl.garageCustomization');
+			if (rawCustom) {
+				var gc = JSON.parse(rawCustom);
+
+				// Apply ship body color tint
+				if (typeof gc.shipColor === 'number' && gc.shipColor !== 0xffffff) {
+					var shipMat = this.materials.ship;
+					// ShaderMaterial (high quality) — use uniform
+					if (shipMat instanceof THREE.ShaderMaterial && shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
+						shipMat.uniforms['uDiffuseColor'].value.setHex(gc.shipColor);
+					}
+					// MeshBasicMaterial / MeshPhongMaterial — use color
+					else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
+						shipMat.color.setHex(gc.shipColor);
+					}
+					console.log('Cityscape: Applied garage ship color 0x' + gc.shipColor.toString(16));
+				}
+
+				// Apply booster light color
+				if (typeof gc.boosterColor === 'number') {
+					boosterLight.color.setHex(gc.boosterColor);
+					console.log('Cityscape: Applied garage booster color 0x' + gc.boosterColor.toString(16));
+				}
+			}
+		} catch(e) {
+			console.warn('Cityscape: Could not apply garage customization', e);
+		}
 		
 		// desktop + quality low, mid or high
 		// OR

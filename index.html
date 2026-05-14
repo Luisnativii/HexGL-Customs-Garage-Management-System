@@ -21,7 +21,8 @@
         padding:0;
         margin:0;
       }
-      canvas { pointer-events:none; width: 100%;}
+      canvas { width: 100%;}
+      #step-4 canvas { pointer-events: none; }
       #overlay{
         position: absolute;
         z-index: 9999;
@@ -86,13 +87,134 @@
     </div>
 
     <div id="garage" style="display: none">
-      <h3>Garage</h3>
-      <div class="garage-actions">
-        <button id="garage-save" type="button">Guardar</button>
-        <button id="garage-back" type="button">Regresar al menú</button>
+      <div class="garage-header">
+        <h3>Garage</h3>
+        <div class="garage-actions">
+          <button id="garage-toggle-panel" type="button">🎨 Personalizar</button>
+          <button id="garage-save" type="button">💾 Guardar</button>
+          <button id="garage-back" type="button">← Regresar al menú</button>
+        </div>
       </div>
-      <canvas id="garage-canvas"></canvas>
-      <p>Sección de Garage.</p>
+
+      <!-- 3D Viewport -->
+      <div id="garage-viewport">
+        <span id="garage-status" class="garage-status"></span>
+        <div id="garage-controls-hint" class="garage-hint">
+          <span>🖱️ Arrastrar para rotar</span>
+          <span>⚙️ Scroll para zoom</span>
+        </div>
+      </div>
+
+      <!-- Color Customization Panel (right sidebar) -->
+      <div id="garage-panel" class="garage-panel">
+        <div class="panel-inner">
+
+          <!-- Ship Body Color -->
+          <div class="panel-section">
+            <div class="panel-section-title">
+              <span class="panel-icon">🚀</span> Color de la Nave
+            </div>
+            <p class="panel-desc">Selecciona un color para teñir la carrocería.</p>
+            <div class="color-grid" id="ship-color-grid">
+              <button class="color-swatch active" data-color="0xffffff" style="background:#ffffff" title="Original (Blanco)">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xff3b3b" style="background:#ff3b3b" title="Rojo Racing">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xff7b00" style="background:#ff7b00" title="Naranja Fuego">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xffd000" style="background:#ffd000" title="Amarillo Eléctrico">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x00e85a" style="background:#00e85a" title="Verde Neón">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x00cfff" style="background:#00cfff" title="Cyan Turbo">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x3b82f6" style="background:#3b82f6" title="Azul Cobalto">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x8b5cf6" style="background:#8b5cf6" title="Púrpura Cosmos">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xf472b6" style="background:#f472b6" title="Rosa Sakura">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xc0c0c0" style="background:#c0c0c0" title="Plata Cromado">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x1e1e1e" style="background:#1e1e1e; border: 1px solid #555;" title="Negro Stealth">
+                <span class="swatch-check" style="color:#fff">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xdaa520" style="background:#daa520" title="Dorado">
+                <span class="swatch-check">✓</span>
+              </button>
+            </div>
+            <div class="custom-color-row">
+              <label for="ship-custom-color">Personalizado:</label>
+              <input type="color" id="ship-custom-color" value="#ffffff">
+            </div>
+          </div>
+
+          <!-- Engine Glow Color -->
+          <div class="panel-section">
+            <div class="panel-section-title">
+              <span class="panel-icon">💠</span> Color del Motor
+            </div>
+            <p class="panel-desc">Cambia el color del resplandor del propulsor.</p>
+            <div class="color-grid" id="booster-color-grid">
+              <button class="color-swatch active" data-color="0x00a2ff" style="background:#00a2ff" title="Azul Plasma (Original)">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xff3b3b" style="background:#ff3b3b" title="Rojo">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xff7b00" style="background:#ff7b00" title="Naranja">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xffd000" style="background:#ffd000" title="Amarillo">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x00ff88" style="background:#00ff88" title="Verde Plasma">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x00ffff" style="background:#00ffff" title="Cyan">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0x8b5cf6" style="background:#8b5cf6" title="Púrpura">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xf472b6" style="background:#f472b6" title="Rosa">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xffffff" style="background:#ffffff" title="Blanco">
+                <span class="swatch-check">✓</span>
+              </button>
+              <button class="color-swatch" data-color="0xccff00" style="background:#ccff00" title="Lima">
+                <span class="swatch-check">✓</span>
+              </button>
+            </div>
+            <div class="custom-color-row">
+              <label for="booster-custom-color">Personalizado:</label>
+              <input type="color" id="booster-custom-color" value="#00a2ff">
+            </div>
+          </div>
+
+          <!-- Reset -->
+          <div class="panel-section panel-section-reset">
+            <button id="garage-reset-colors" class="btn-reset" type="button">
+              ↺ Restablecer colores originales
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Save Notification Toast -->
+      <div id="garage-toast" class="garage-toast"></div>
     </div>
 
     <div id="leapinfo" style="display: none"></div>
@@ -133,7 +255,7 @@
     <script src="bkcore/hexgl/CameraChase.js"></script>
     <script src="bkcore/hexgl/Gameplay.js"></script>
 
-    <script src="bkcore/hexgl/tracks/Cityscape.js"></script>
+    <script src="bkcore/hexgl/tracks/Cityscape.js?v=2"></script>
 
     <script src="bkcore/hexgl/HexGL.js"></script>
 

@@ -106,7 +106,7 @@
       var ambientLight = new THREE.AmbientLight(0x1a2040);
       garageScene.add(ambientLight);
 
-      var keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      var keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
       keyLight.position.set(5, 15, 10);
       garageScene.add(keyLight);
 
@@ -145,6 +145,14 @@
         var diffuseTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/diffuse.jpg');
         var specularTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/specular.jpg');
         var normalTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/normal.jpg');
+        var reflectionTexture = THREE.ImageUtils.loadTextureCube([
+          'textures.full/skybox/dawnclouds/px.jpg',
+          'textures.full/skybox/dawnclouds/nx.jpg',
+          'textures.full/skybox/dawnclouds/py.jpg',
+          'textures.full/skybox/dawnclouds/ny.jpg',
+          'textures.full/skybox/dawnclouds/pz.jpg',
+          'textures.full/skybox/dawnclouds/nz.jpg'
+        ]);
 
         var shipMaterial;
         try {
@@ -153,23 +161,34 @@
               diffuse: diffuseTexture,
               specular: specularTexture,
               normal: normalTexture,
+              cube: reflectionTexture,
+              reflectivity: 0.9,
               ambient: 0x444444,
-              shininess: 42,
+              shininess: 200,
               metal: true,
-              perPixel: false
+              perPixel: true
             });
           } else {
             throw new Error('bkcore.Utils not available');
           }
         } catch(e) {
+          console.warn('GarageRenderer: Could not create custom shader material, falling back to MeshPhongMaterial', e);
           shipMaterial = new THREE.MeshPhongMaterial({
             map: diffuseTexture,
             specularMap: specularTexture,
-            specular: new THREE.Color(0x888888),
-            ambient: new THREE.Color(0x444444),
-            shininess: 42,
+            envMap: reflectionTexture,
+            combine: THREE.MixOperation,
+            reflectivity: 0.9,
+            specular: new THREE.Color(0xe0e0e0),
+            ambient: new THREE.Color(0x303030),
+            shininess: 200,
             metal: true
           });
+          // ensure env map mapping and update material
+          try {
+            if (reflectionTexture) reflectionTexture.mapping = THREE.CubeReflectionMapping;
+            shipMaterial.needsUpdate = true;
+          } catch(e) {}
         }
 
         var shipMesh = new THREE.Mesh(geometry, shipMaterial);

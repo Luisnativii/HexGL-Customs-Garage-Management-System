@@ -99,6 +99,12 @@
   box-shadow: 0 8px 28px rgba(44, 163, 110, 0.55);
 }
 
+#garage-save.saved {
+  background: linear-gradient(180deg, #ffffff, #7de0b2);
+  color: #07351f;
+  box-shadow: 0 0 0 3px rgba(125, 224, 178, 0.3), 0 8px 28px rgba(44, 163, 110, 0.6);
+}
+
 #garage-back {
   background: linear-gradient(180deg, #eceff4, #c8d0dc);
   color: #17202c;

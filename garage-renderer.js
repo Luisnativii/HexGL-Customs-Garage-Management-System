@@ -8,6 +8,29 @@
   var garageShipGroup = null;
   var garageBoosterLight = null;
 
+  function getGaragePreferences()
+  {
+    return bkcore && bkcore.garage && bkcore.garage.GaragePreferences
+      ? bkcore.garage.GaragePreferences
+      : null;
+  }
+
+  function colorNumberToHexString(hexColor)
+  {
+    return '#' + ('000000' + hexColor.toString(16)).slice(-6).toLowerCase();
+  }
+
+  function hexStringToColorNumber(hexColor)
+  {
+    return parseInt(hexColor.replace('#', ''), 16);
+  }
+
+  function applyPrefsToCustomization(prefs)
+  {
+    customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
+    customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
+  }
+
   // Current customization state
   var customization = {
     shipColor: 0xffffff,       // Tint color for the ship body (white = no tint)
@@ -289,19 +312,24 @@
      * Save current customization to localStorage
      */
     saveCustomization: function() {
-      try {
-        var data = {
-          shipColor: customization.shipColor,
-          boosterColor: customization.boosterColor,
-          savedAt: new Date().toISOString()
-        };
-        window.localStorage.setItem('hexgl.garageCustomization', JSON.stringify(data));
-        console.log('GarageRenderer: Customization saved', data);
-        return true;
-      } catch(e) {
-        console.warn('GarageRenderer: Could not save customization', e);
+      var preferences = getGaragePreferences();
+      if (!preferences) {
+        console.warn('GarageRenderer: GaragePreferences module is not available');
         return false;
       }
+
+      var data = {
+        ship: {
+          colors: {
+            body: colorNumberToHexString(customization.shipColor),
+            engine: colorNumberToHexString(customization.boosterColor)
+          }
+        }
+      };
+
+      var success = preferences.save(data);
+      if (success) console.log('GarageRenderer: Customization saved', data);
+      return success;
     },
 
 
@@ -309,17 +337,14 @@
      * Load customization from localStorage (called on init)
      */
     loadCustomization: function() {
-      try {
-        var raw = window.localStorage.getItem('hexgl.garageCustomization');
-        if (raw) {
-          var data = JSON.parse(raw);
-          if (typeof data.shipColor === 'number') customization.shipColor = data.shipColor;
-          if (typeof data.boosterColor === 'number') customization.boosterColor = data.boosterColor;
-          console.log('GarageRenderer: Customization loaded', customization);
-        }
-      } catch(e) {
-        console.warn('GarageRenderer: Could not load customization', e);
+      var preferences = getGaragePreferences();
+      if (!preferences) {
+        console.warn('GarageRenderer: GaragePreferences module is not available');
+        return;
       }
+
+      applyPrefsToCustomization(preferences.load());
+      console.log('GarageRenderer: Customization loaded', customization);
     },
 
 

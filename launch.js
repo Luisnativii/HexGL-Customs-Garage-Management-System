@@ -9,15 +9,56 @@
   // ═══════════════════════════════════════════════════════════
   //  Apply saved garage colors to the in-game ship
   // ═══════════════════════════════════════════════════════════
+  function garageHexStringToNumber(hexColor) {
+    return parseInt(hexColor.replace('#', ''), 16);
+  }
+
+  function garageColorNumberToHexString(hexColor) {
+    return '#' + ('000000' + hexColor.toString(16)).slice(-6).toLowerCase();
+  }
+
+  function getGaragePrefs() {
+    if (bkcore && bkcore.garage && bkcore.garage.GaragePreferences) {
+      return bkcore.garage.GaragePreferences.load();
+    }
+    console.warn('launch.js: GaragePreferences module is not available');
+    return null;
+  }
+
+  function applyEngineColorToNode(node, engineColor, rootNode) {
+    if (!node) return;
+
+    if (node instanceof THREE.PointLight) {
+      node.color.setHex(engineColor);
+      console.log('launch.js: Applied booster light color 0x' + engineColor.toString(16));
+    }
+
+    if (node.material && node.material.color && typeof node.material.color.setHex === 'function') {
+      if (node !== rootNode) {
+        node.material.color.setHex(engineColor);
+      }
+    }
+
+    if (node.color && typeof node.color.setHex === 'function') {
+      node.color.setHex(engineColor);
+    }
+
+    if (node.children) {
+      for (var i = 0; i < node.children.length; i++) {
+        applyEngineColorToNode(node.children[i], engineColor, rootNode);
+      }
+    }
+  }
+
   function applyGarageColorsToGame(hexGL) {
     try {
-      var raw = window.localStorage.getItem('hexgl.garageCustomization');
-      if (!raw) {
-        console.log('launch.js: No garage customization found');
+      var prefs = getGaragePrefs();
+      if (!prefs) {
         return;
       }
-      var gc = JSON.parse(raw);
-      console.log('launch.js: Applying garage customization', gc);
+      var bodyColor = garageHexStringToNumber(prefs.ship.colors.body);
+      var engineColor = garageHexStringToNumber(prefs.ship.colors.engine);
+      console.log('launch.js: Applying garage customization', prefs);
 
       // Get the track object (contains materials)
       var track = hexGL.track;
@@ -27,46 +68,25 @@
       }
 
       // Apply ship body color tint
-      if (typeof gc.shipColor === 'number' && gc.shipColor !== 0xffffff) {
-        var shipMat = track.materials.ship;
+      var shipMat = track.materials.ship;
 
-        // ShaderMaterial (high quality) — uDiffuseColor uniform
-        if (shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
-          shipMat.uniforms['uDiffuseColor'].value.setHex(gc.shipColor);
-          console.log('launch.js: Applied ship color (ShaderMaterial) 0x' + gc.shipColor.toString(16));
-        }
-        // MeshBasicMaterial / MeshPhongMaterial — .color property
-        else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
-          shipMat.color.setHex(gc.shipColor);
-          console.log('launch.js: Applied ship color (BasicMaterial) 0x' + gc.shipColor.toString(16));
-        }
+      // ShaderMaterial (high quality) — uDiffuseColor uniform
+      if (shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
+        shipMat.uniforms['uDiffuseColor'].value.setHex(bodyColor);
+        console.log('launch.js: Applied ship color (ShaderMaterial) 0x' + bodyColor.toString(16));
+      }
+      // MeshBasicMaterial / MeshPhongMaterial — .color property
+      else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
+        shipMat.color.setHex(bodyColor);
+        console.log('launch.js: Applied ship color (BasicMaterial) 0x' + bodyColor.toString(16));
       }
 
       // Apply booster light color
-      if (typeof gc.boosterColor === 'number') {
-        // Try to find PointLights via the ship mesh children
-        var shipControls = hexGL.components.shipControls;
-        var shipMesh = shipControls && shipControls.mesh;
-        if (shipMesh) {
-          // The booster is a child of the ship mesh
-          shipMesh.children.forEach(function(child) {
-            if (child.children) {
-              child.children.forEach(function(grandchild) {
-                if (grandchild instanceof THREE.PointLight) {
-                  grandchild.color.setHex(gc.boosterColor);
-                  console.log('launch.js: Applied booster color 0x' + gc.boosterColor.toString(16));
-                }
-              });
-            }
-          });
-          // Also check direct children
-          shipMesh.children.forEach(function(child) {
-            if (child instanceof THREE.PointLight) {
-              child.color.setHex(gc.boosterColor);
-              console.log('launch.js: Applied booster color (direct) 0x' + gc.boosterColor.toString(16));
-            }
-          });
-        }
+      // Try to find PointLights and booster meshes via the ship mesh children
+      var shipControls = hexGL.components.shipControls;
+      var shipMesh = shipControls && shipControls.mesh;
+      if (shipMesh) {
+        applyEngineColorToNode(shipMesh, engineColor, shipMesh);
       }
     } catch(e) {
       console.warn('launch.js: Error applying garage customization', e);
@@ -191,10 +211,17 @@
   // ── Save ──
   function saveGarageState() {
     var success = GarageRenderer.saveCustomization();
+    var saveBtn = $('garage-save');
     if (success) {
-      showToast('✓ Personalización guardada');
+      if (saveBtn) {
+        saveBtn.classList.add('saved');
+        setTimeout(function() {
+          saveBtn.classList.remove('saved');
+        }, 1000);
+      }
+      showToast('Guardado');
     } else {
-      showToast('✗ Error al guardar');
+      showToast('No se pudo guardar');
     }
   }
 
@@ -251,7 +278,7 @@
     }
     // Update custom picker
     var shipPicker = $('ship-custom-color');
-    if (shipPicker) shipPicker.value = '#' + ('000000' + state.shipColor.toString(16)).slice(-6);
+    if (shipPicker) shipPicker.value = garageColorNumberToHexString(state.shipColor);
 
     // Booster color swatches
     var boosterSwatches = document.querySelectorAll('#booster-color-grid .color-swatch');
@@ -265,7 +292,7 @@
     }
     // Update custom picker
     var boosterPicker = $('booster-custom-color');
-    if (boosterPicker) boosterPicker.value = '#' + ('000000' + state.boosterColor.toString(16)).slice(-6);
+    if (boosterPicker) boosterPicker.value = garageColorNumberToHexString(state.boosterColor);
   }
 
   // ── Open Garage ──
@@ -273,6 +300,7 @@
     $('step-1').style.display = 'none';
     $('garage').style.display = 'block';
     GarageRenderer.init($('garage-viewport'));
+    syncSwatchesWithState();
   };
 
   // ── Setup event listeners ──
@@ -311,7 +339,7 @@
 
         // Update custom picker to match
         var picker = $('ship-custom-color');
-        if (picker) picker.value = '#' + ('000000' + colorHex.toString(16)).slice(-6);
+        if (picker) picker.value = garageColorNumberToHexString(colorHex);
       });
     }
 
@@ -350,7 +378,7 @@
 
         // Update custom picker to match
         var picker = $('booster-custom-color');
-        if (picker) picker.value = '#' + ('000000' + colorHex.toString(16)).slice(-6);
+        if (picker) picker.value = garageColorNumberToHexString(colorHex);
       });
     }
 
@@ -374,8 +402,9 @@
     if (resetBtn) {
       resetBtn.onclick = function(event) {
         preventGarageClickBubble(event);
-        GarageRenderer.setShipColor(0xffffff);
-        GarageRenderer.setBoosterColor(0x00a2ff);
+        var prefs = bkcore.garage.GaragePreferences.getDefaults();
+        GarageRenderer.setShipColor(garageHexStringToNumber(prefs.ship.colors.body));
+        GarageRenderer.setBoosterColor(garageHexStringToNumber(prefs.ship.colors.engine));
         syncSwatchesWithState();
         showToast('↺ Colores restablecidos');
         return false;

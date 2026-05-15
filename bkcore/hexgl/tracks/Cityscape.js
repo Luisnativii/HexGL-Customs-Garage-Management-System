@@ -361,6 +361,20 @@ bkcore.hexgl.tracks.Cityscape = {
 		ctx.manager.add("sky", sceneCube, cameraCube);
 
 		var ambient = 0xbbbbbb, diffuse = 0xffffff, specular = 0xffffff, shininess = 42, scale = 23;
+		var garagePrefs = null;
+		var garageBodyColor = 0xffffff;
+		var garageEngineColor = 0x00a2ff;
+
+		try {
+			if(bkcore.garage && bkcore.garage.GaragePreferences)
+			{
+				garagePrefs = bkcore.garage.GaragePreferences.load();
+				garageBodyColor = parseInt(garagePrefs.ship.colors.body.replace('#', ''), 16);
+				garageEngineColor = parseInt(garagePrefs.ship.colors.engine.replace('#', ''), 16);
+			}
+		} catch(e) {
+			console.warn('Cityscape: Could not load garage preferences', e);
+		}
 
 		// MAIN SCENE
 		var camera = new THREE.PerspectiveCamera( 70, ctx.width / ctx.height, 1, 60000 );
@@ -410,6 +424,30 @@ bkcore.hexgl.tracks.Cityscape = {
 
 		var boosterLight = new THREE.PointLight(0x00a2ff, 4.0, 60);
 		boosterLight.position.set(0, 0.665, -4);
+
+		// Apply garage customization loaded through GaragePreferences.
+		try {
+			var shipMat = this.materials.ship;
+			if (shipMat instanceof THREE.ShaderMaterial && shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
+				shipMat.uniforms['uDiffuseColor'].value.setHex(garageBodyColor);
+			}
+			else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
+				shipMat.color.setHex(garageBodyColor);
+			}
+
+			if (this.materials.booster && this.materials.booster.color && typeof this.materials.booster.color.setHex === 'function') {
+				this.materials.booster.color.setHex(garageEngineColor);
+			}
+
+			if (boosterSprite.color && typeof boosterSprite.color.setHex === 'function') {
+				boosterSprite.color.setHex(garageEngineColor);
+			}
+
+			boosterLight.color.setHex(garageEngineColor);
+			console.log('Cityscape: Applied garage preferences', garagePrefs);
+		} catch(e) {
+			console.warn('Cityscape: Could not apply garage preferences', e);
+		}
 		
 		// desktop + quality low, mid or high
 		// OR

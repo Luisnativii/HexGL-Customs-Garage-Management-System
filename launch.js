@@ -6,6 +6,93 @@
     return document.getElementById(_);
   };
 
+  // ═══════════════════════════════════════════════════════════
+  //  Apply saved garage colors to the in-game ship
+  // ═══════════════════════════════════════════════════════════
+  function garageHexStringToNumber(hexColor) {
+    return parseInt(hexColor.replace('#', ''), 16);
+  }
+
+  function garageColorNumberToHexString(hexColor) {
+    return '#' + ('000000' + hexColor.toString(16)).slice(-6).toLowerCase();
+  }
+
+  function getGaragePrefs() {
+    if (bkcore && bkcore.garage && bkcore.garage.GaragePreferences) {
+      return bkcore.garage.GaragePreferences.load();
+    }
+    console.warn('launch.js: GaragePreferences module is not available');
+    return null;
+  }
+
+  function applyEngineColorToNode(node, engineColor, rootNode) {
+    if (!node) return;
+
+    if (node instanceof THREE.PointLight) {
+      node.color.setHex(engineColor);
+      console.log('launch.js: Applied booster light color 0x' + engineColor.toString(16));
+    }
+
+    if (node.material && node.material.color && typeof node.material.color.setHex === 'function') {
+      if (node !== rootNode) {
+        node.material.color.setHex(engineColor);
+      }
+    }
+
+    if (node.color && typeof node.color.setHex === 'function') {
+      node.color.setHex(engineColor);
+    }
+
+    if (node.children) {
+      for (var i = 0; i < node.children.length; i++) {
+        applyEngineColorToNode(node.children[i], engineColor, rootNode);
+      }
+    }
+  }
+
+  function applyGarageColorsToGame(hexGL) {
+    try {
+      var prefs = getGaragePrefs();
+      if (!prefs) {
+        return;
+      }
+      var bodyColor = garageHexStringToNumber(prefs.ship.colors.body);
+      var engineColor = garageHexStringToNumber(prefs.ship.colors.engine);
+      console.log('launch.js: Applying garage customization', prefs);
+
+      // Get the track object (contains materials)
+      var track = hexGL.track;
+      if (!track || !track.materials || !track.materials.ship) {
+        console.warn('launch.js: Track/materials not available');
+        return;
+      }
+
+      // Apply ship body color tint
+      var shipMat = track.materials.ship;
+
+      // ShaderMaterial (high quality) — uDiffuseColor uniform
+      if (shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
+        shipMat.uniforms['uDiffuseColor'].value.setHex(bodyColor);
+        console.log('launch.js: Applied ship color (ShaderMaterial) 0x' + bodyColor.toString(16));
+      }
+      // MeshBasicMaterial / MeshPhongMaterial — .color property
+      else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
+        shipMat.color.setHex(bodyColor);
+        console.log('launch.js: Applied ship color (BasicMaterial) 0x' + bodyColor.toString(16));
+      }
+
+      // Apply booster light color
+      // Try to find PointLights and booster meshes via the ship mesh children
+      var shipControls = hexGL.components.shipControls;
+      var shipMesh = shipControls && shipControls.mesh;
+      if (shipMesh) {
+        applyEngineColorToNode(shipMesh, engineColor, shipMesh);
+      }
+    } catch(e) {
+      console.warn('launch.js: Error applying garage customization', e);
+    }
+  }
+
   init = function(controlType, quality, hud, godmode) {
     var hexGL, progressbar;
     hexGL = new bkcore.hexgl.HexGL({
@@ -28,6 +115,10 @@
       onLoad: function() {
         console.log('LOADED.');
         hexGL.init();
+
+        // ── Apply garage customization to the in-game ship ──
+        applyGarageColorsToGame(hexGL);
+
         $('step-3').style.display = 'none';
         $('step-4').style.display = 'block';
         return hexGL.start();
@@ -82,6 +173,259 @@
   $('credits').onclick = function() {
     $('step-1').style.display = 'block';
     return $('credits').style.display = 'none';
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  //  GARAGE — Navigation & Panel Logic
+  // ═══════════════════════════════════════════════════════════
+
+  var garagePanelOpen = false;
+
+  function returnToMenu() {
+    // Close panel if open
+    closePanelIfOpen();
+    $('garage').style.display = 'none';
+    $('step-1').style.display = 'block';
+    GarageRenderer.destroy();
+  }
+
+  function preventGarageClickBubble(event) {
+    if (!event) return;
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) {
+      event.stopImmediatePropagation();
+    }
+  }
+
+  // ── Toast Notification ──
+  function showToast(message) {
+    var toast = $('garage-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(function() {
+      toast.classList.remove('show');
+    }, 2200);
+  }
+
+  // ── Save ──
+  function saveGarageState() {
+    var success = GarageRenderer.saveCustomization();
+    var saveBtn = $('garage-save');
+    if (success) {
+      if (saveBtn) {
+        saveBtn.classList.add('saved');
+        setTimeout(function() {
+          saveBtn.classList.remove('saved');
+        }, 1000);
+      }
+      showToast('Guardado');
+    } else {
+      showToast('No se pudo guardar');
+    }
+  }
+
+  // ── Panel toggle ──
+  function togglePanel() {
+    garagePanelOpen = !garagePanelOpen;
+    var panel = $('garage-panel');
+    var viewport = $('garage-viewport');
+    var toggleBtn = $('garage-toggle-panel');
+
+    if (garagePanelOpen) {
+      panel.classList.add('open');
+      viewport.classList.add('panel-open');
+      toggleBtn.classList.add('panel-active');
+      // Sync swatches with current customization
+      syncSwatchesWithState();
+    } else {
+      panel.classList.remove('open');
+      viewport.classList.remove('panel-open');
+      toggleBtn.classList.remove('panel-active');
+    }
+
+    // Trigger resize so the 3D viewport adjusts its aspect ratio
+    setTimeout(function() {
+      GarageRenderer.onWindowResize();
+    }, 400);
+  }
+
+  function closePanelIfOpen() {
+    if (garagePanelOpen) {
+      garagePanelOpen = false;
+      var panel = $('garage-panel');
+      var viewport = $('garage-viewport');
+      var toggleBtn = $('garage-toggle-panel');
+      if (panel) panel.classList.remove('open');
+      if (viewport) viewport.classList.remove('panel-open');
+      if (toggleBtn) toggleBtn.classList.remove('panel-active');
+    }
+  }
+
+  // ── Sync swatch active state with current customization ──
+  function syncSwatchesWithState() {
+    var state = GarageRenderer.getCustomization();
+
+    // Ship color swatches
+    var shipSwatches = document.querySelectorAll('#ship-color-grid .color-swatch');
+    for (var i = 0; i < shipSwatches.length; i++) {
+      var colorVal = parseInt(shipSwatches[i].getAttribute('data-color'));
+      if (colorVal === state.shipColor) {
+        shipSwatches[i].classList.add('active');
+      } else {
+        shipSwatches[i].classList.remove('active');
+      }
+    }
+    // Update custom picker
+    var shipPicker = $('ship-custom-color');
+    if (shipPicker) shipPicker.value = garageColorNumberToHexString(state.shipColor);
+
+    // Booster color swatches
+    var boosterSwatches = document.querySelectorAll('#booster-color-grid .color-swatch');
+    for (var j = 0; j < boosterSwatches.length; j++) {
+      var bColorVal = parseInt(boosterSwatches[j].getAttribute('data-color'));
+      if (bColorVal === state.boosterColor) {
+        boosterSwatches[j].classList.add('active');
+      } else {
+        boosterSwatches[j].classList.remove('active');
+      }
+    }
+    // Update custom picker
+    var boosterPicker = $('booster-custom-color');
+    if (boosterPicker) boosterPicker.value = garageColorNumberToHexString(state.boosterColor);
+  }
+
+  // ── Open Garage ──
+  $('s-garage').onclick = function() {
+    $('step-1').style.display = 'none';
+    $('garage').style.display = 'block';
+    GarageRenderer.init($('garage-viewport'));
+    syncSwatchesWithState();
+  };
+
+  // ── Setup event listeners ──
+  function setupGarageListeners() {
+    // Prevent clicks from bubbling through the garage
+    $('garage').addEventListener('click', preventGarageClickBubble);
+    var viewportEl = $('garage-viewport');
+    if (viewportEl) {
+      viewportEl.addEventListener('click', preventGarageClickBubble);
+    }
+
+    // ── Panel toggle ──
+    $('garage-toggle-panel').onclick = function(event) {
+      preventGarageClickBubble(event);
+      togglePanel();
+      return false;
+    };
+
+    // ── Ship color swatches ──
+    var shipGrid = $('ship-color-grid');
+    if (shipGrid) {
+      shipGrid.addEventListener('click', function(event) {
+        var swatch = event.target.closest('.color-swatch');
+        if (!swatch) return;
+        preventGarageClickBubble(event);
+
+        var colorHex = parseInt(swatch.getAttribute('data-color'));
+        GarageRenderer.setShipColor(colorHex);
+
+        // Update active state
+        var siblings = shipGrid.querySelectorAll('.color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+        swatch.classList.add('active');
+
+        // Update custom picker to match
+        var picker = $('ship-custom-color');
+        if (picker) picker.value = garageColorNumberToHexString(colorHex);
+      });
+    }
+
+    // ── Ship custom color picker ──
+    var shipPicker = $('ship-custom-color');
+    if (shipPicker) {
+      shipPicker.addEventListener('input', function() {
+        var hexVal = parseInt(this.value.replace('#', ''), 16);
+        GarageRenderer.setShipColor(hexVal);
+
+        // Deactivate all preset swatches
+        var siblings = shipGrid.querySelectorAll('.color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+      });
+    }
+
+    // ── Booster color swatches ──
+    var boosterGrid = $('booster-color-grid');
+    if (boosterGrid) {
+      boosterGrid.addEventListener('click', function(event) {
+        var swatch = event.target.closest('.color-swatch');
+        if (!swatch) return;
+        preventGarageClickBubble(event);
+
+        var colorHex = parseInt(swatch.getAttribute('data-color'));
+        GarageRenderer.setBoosterColor(colorHex);
+
+        // Update active state
+        var siblings = boosterGrid.querySelectorAll('.color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+        swatch.classList.add('active');
+
+        // Update custom picker to match
+        var picker = $('booster-custom-color');
+        if (picker) picker.value = garageColorNumberToHexString(colorHex);
+      });
+    }
+
+    // ── Booster custom color picker ──
+    var boosterPicker = $('booster-custom-color');
+    if (boosterPicker) {
+      boosterPicker.addEventListener('input', function() {
+        var hexVal = parseInt(this.value.replace('#', ''), 16);
+        GarageRenderer.setBoosterColor(hexVal);
+
+        // Deactivate all preset swatches
+        var siblings = boosterGrid.querySelectorAll('.color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+      });
+    }
+
+    // ── Reset button ──
+    var resetBtn = $('garage-reset-colors');
+    if (resetBtn) {
+      resetBtn.onclick = function(event) {
+        preventGarageClickBubble(event);
+        var prefs = bkcore.garage.GaragePreferences.getDefaults();
+        GarageRenderer.setShipColor(garageHexStringToNumber(prefs.ship.colors.body));
+        GarageRenderer.setBoosterColor(garageHexStringToNumber(prefs.ship.colors.engine));
+        syncSwatchesWithState();
+        showToast('↺ Colores restablecidos');
+        return false;
+      };
+    }
+  }
+
+  setupGarageListeners();
+
+  // ── Save button ──
+  $('garage-save').onclick = function(event) {
+    preventGarageClickBubble(event);
+    saveGarageState();
+    return false;
+  };
+
+  // ── Back button ──
+  $('garage-back').onclick = function(event) {
+    preventGarageClickBubble(event);
+    returnToMenu();
+    return false;
   };
 
   hasWebGL = function() {

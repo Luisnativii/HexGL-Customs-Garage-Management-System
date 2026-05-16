@@ -309,24 +309,66 @@
     createTrailPreview: function() {
       if (!garageScene || typeof bkcore === 'undefined' || !bkcore.threejs || !bkcore.threejs.Particles) return;
 
-      garageTrailParticles = new bkcore.threejs.Particles({
-        max: 100,
-        spawnRate: 3,
+      var texCloud = null;
+      if (THREE.ImageUtils && THREE.ImageUtils.loadTexture) {
+         texCloud = THREE.ImageUtils.loadTexture("textures/particles/cloud.png");
+      }
+
+      var leftTrail = new bkcore.threejs.Particles({
+        max: 200,
+        spawnRate: 2,
         tint: garageTrailColor,
-        color: 0xffc000,
+        color: 0xffffff,
         color2: 0xffffff,
-        size: 1.5,
+        texture: texCloud,
+        size: 3.0,
         life: 40,
-        opacity: 0.85,
-        spawn: new THREE.Vector3(0, 0.2, -3.5),
-        spawnRadius: new THREE.Vector3(1.5, 0.3, 0.3),
-        velocity: new THREE.Vector3(0, 0.03, -0.12),
-        randomness: new THREE.Vector3(0.2, 0.15, 0.1),
-        force: new THREE.Vector3(0, 0.001, 0),
-        friction: 0.97
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        depthTest: true,
+        spawn: new THREE.Vector3(1.2, 0.2, -3.5),
+        spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+        velocity: new THREE.Vector3(0, 0, -1.0),
+        randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+        force: new THREE.Vector3(0, 0, 0),
+        friction: 0.98
       });
 
-      garageScene.add(garageTrailParticles.system);
+      var rightTrail = new bkcore.threejs.Particles({
+        max: 200,
+        spawnRate: 2,
+        tint: garageTrailColor,
+        color: 0xffffff,
+        color2: 0xffffff,
+        texture: texCloud,
+        size: 3.0,
+        life: 40,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        depthTest: true,
+        spawn: new THREE.Vector3(-1.2, 0.2, -3.5),
+        spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+        velocity: new THREE.Vector3(0, 0, -1.0),
+        randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+        force: new THREE.Vector3(0, 0, 0),
+        friction: 0.98
+      });
+
+      garageScene.add(leftTrail.system);
+      garageScene.add(rightTrail.system);
+
+      garageTrailParticles = {
+        left: leftTrail,
+        right: rightTrail,
+        setTint: function(hex) {
+          this.left.setTint(hex);
+          this.right.setTint(hex);
+        },
+        update: function(dt) {
+          this.left.update(dt);
+          this.right.update(dt);
+        }
+      };
     },
 
     /**

@@ -111,29 +111,51 @@ bkcore.hexgl.ShipEffects = function(opts)
 				randomness: new THREE.Vector3(0.05,0.05,0.1)
 			}),
 			
-			engineTrail: new bkcore.threejs.Particles(
+			leftEngineTrail: new bkcore.threejs.Particles(
 			{
-				max: 400,
-				spawnRate: 3,
+				max: 200,
+				spawnRate: 2,
 				tint: trailTint,
 				color: 0xffffff,
 				color2: 0xffffff,
 				texture: opts.textureCloud,
-				size: trailSize * 2,
-				life: 50,
-				opacity: 0.85,
+				size: trailSize * 1.5,
+				life: 40,
+				opacity: 0.7,
 				blending: THREE.AdditiveBlending,
 				depthTest: true,
-				spawn: new THREE.Vector3(0, 0.2, -1.0),
-				spawnRadius: new THREE.Vector3(1.0, 0.3, 0.3),
-				velocity: new THREE.Vector3(0, 0.03, -0.4),
-				randomness: new THREE.Vector3(0.2, 0.15, 0.1),
-				force: new THREE.Vector3(0, 0.001, 0),
-				friction: 0.97
+				spawn: new THREE.Vector3(1.2, -0.1, -1.5),
+				spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+				velocity: new THREE.Vector3(0, 0, -0.6),
+				randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+				force: new THREE.Vector3(0, 0, 0),
+				friction: 0.98
+			}),
+
+			rightEngineTrail: new bkcore.threejs.Particles(
+			{
+				max: 200,
+				spawnRate: 2,
+				tint: trailTint,
+				color: 0xffffff,
+				color2: 0xffffff,
+				texture: opts.textureCloud,
+				size: trailSize * 1.5,
+				life: 40,
+				opacity: 0.7,
+				blending: THREE.AdditiveBlending,
+				depthTest: true,
+				spawn: new THREE.Vector3(-1.2, -0.1, -1.5),
+				spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+				velocity: new THREE.Vector3(0, 0, -0.6),
+				randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+				force: new THREE.Vector3(0, 0, 0),
+				friction: 0.98
 			})
 		};
 
-		this.shipControls.mesh.add(this.particles.engineTrail.system);
+		this.shipControls.mesh.add(this.particles.leftEngineTrail.system);
+		this.shipControls.mesh.add(this.particles.rightEngineTrail.system);
 		this.shipControls.mesh.add(this.particles.leftClouds.system);
 		this.shipControls.mesh.add(this.particles.rightClouds.system);
 		this.scene.add(this.particles.leftSparks.system);
@@ -220,8 +242,9 @@ bkcore.hexgl.ShipEffects.prototype.update = function(dt)
 		this.particles.rightClouds.update(dt);
 		this.particles.leftSparks.update(dt);
 		this.particles.leftClouds.update(dt);
-		if(this.particles.engineTrail) {
-			this.particles.engineTrail.update(dt);
+		if(this.particles.leftEngineTrail) {
+			this.particles.leftEngineTrail.update(dt);
+			this.particles.rightEngineTrail.update(dt);
 		}
 	}
 }
@@ -235,7 +258,10 @@ bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size
 	p.rightSparks.setTint(hexColor);
 	p.leftClouds.setTint(hexColor);
 	p.rightClouds.setTint(hexColor);
-	if(p.engineTrail) p.engineTrail.setTint(hexColor);
+	if(p.leftEngineTrail) {
+		p.leftEngineTrail.setTint(hexColor);
+		p.rightEngineTrail.setTint(hexColor);
+	}
 
 	if(size !== undefined)
 	{
@@ -243,6 +269,9 @@ bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size
 		p.rightSparks.setSize(size);
 		p.leftClouds.setSize(size * 3);
 		p.rightClouds.setSize(size * 3);
-		if(p.engineTrail) p.engineTrail.setSize(size * 2);
+		if(p.leftEngineTrail) {
+			p.leftEngineTrail.setSize(size * 1.5);
+			p.rightEngineTrail.setSize(size * 1.5);
+		}
 	}
 }

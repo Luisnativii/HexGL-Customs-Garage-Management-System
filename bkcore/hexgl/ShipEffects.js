@@ -35,16 +35,23 @@ bkcore.hexgl.ShipEffects = function(opts)
 		this.pOffset.normalize();
 		this.pRad.normalize();
 
+		var prefs = (typeof bkcore.hexgl.GaragePreferences !== 'undefined')
+			? bkcore.hexgl.GaragePreferences
+			: null;
+
+		var trailTint = prefs ? prefs.getParticleTint() : 0xffffff;
+		var trailSize = prefs ? prefs.getParticleSize() : 2;
+
 		this.particles = {
 
 			leftSparks: new bkcore.threejs.Particles(
 			{
 				randomness: new THREE.Vector3(0.4,0.4,0.4),
-				tint: 0xffffff,
+				tint: trailTint,
 				color: 0xffc000,
 				color2: 0xffffff,
 				texture: opts.textureSpark,
-				size: 2,
+				size: trailSize,
 				life: 60,
 				max: 200
 			}),
@@ -52,11 +59,11 @@ bkcore.hexgl.ShipEffects = function(opts)
 			leftClouds: new bkcore.threejs.Particles(
 			{
 				opacity: 0.8,
-				tint: 0xffffff,
+				tint: trailTint,
 				color: 0x666666,
 				color2: 0xa4f1ff,
 				texture: opts.textureCloud,
-				size: 6,
+				size: trailSize * 3,
 				blending: THREE.NormalBlending,
 				life: 60,
 				max: 200,
@@ -69,11 +76,11 @@ bkcore.hexgl.ShipEffects = function(opts)
 			rightSparks: new bkcore.threejs.Particles(
 			{
 				randomness: new THREE.Vector3(0.4,0.4,0.4),
-				tint: 0xffffff,
+				tint: trailTint,
 				color: 0xffc000,
 				color2: 0xffffff,
 				texture: opts.textureSpark,
-				size: 2,
+				size: trailSize,
 				life: 60,
 				max: 200
 			}),
@@ -81,11 +88,11 @@ bkcore.hexgl.ShipEffects = function(opts)
 			rightClouds: new bkcore.threejs.Particles(
 			{
 				opacity: 0.8,
-				tint: 0xffffff,
+				tint: trailTint,
 				color: 0x666666,
 				color2: 0xa4f1ff,
 				texture: opts.textureCloud,
-				size: 6,
+				size: trailSize * 3,
 				blending: THREE.NormalBlending,
 				life: 60,
 				max: 200,
@@ -182,5 +189,24 @@ bkcore.hexgl.ShipEffects.prototype.update = function(dt)
 		this.particles.rightClouds.update(dt);
 		this.particles.leftSparks.update(dt);
 		this.particles.leftClouds.update(dt);
+	}
+}
+
+bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size)
+{
+	if(!this.useParticles) return;
+
+	var p = this.particles;
+	p.leftSparks.setTint(hexColor);
+	p.rightSparks.setTint(hexColor);
+	p.leftClouds.setTint(hexColor);
+	p.rightClouds.setTint(hexColor);
+
+	if(size !== undefined)
+	{
+		p.leftSparks.setSize(size);
+		p.rightSparks.setSize(size);
+		p.leftClouds.setSize(size * 3);
+		p.rightClouds.setSize(size * 3);
 	}
 }

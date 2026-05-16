@@ -310,19 +310,19 @@
       if (!garageScene || typeof bkcore === 'undefined' || !bkcore.threejs || !bkcore.threejs.Particles) return;
 
       garageTrailParticles = new bkcore.threejs.Particles({
-        max: 200,
-        spawnRate: 4,
+        max: 100,
+        spawnRate: 3,
         tint: garageTrailColor,
         color: 0xffc000,
         color2: 0xffffff,
-        size: 3.5,
-        life: 50,
+        size: 1.5,
+        life: 40,
         opacity: 0.85,
-        spawn: new THREE.Vector3(0, -0.8, -4),
-        spawnRadius: new THREE.Vector3(2.5, 0.4, 0.5),
-        velocity: new THREE.Vector3(0, 0.015, -0.25),
-        randomness: new THREE.Vector3(0.35, 0.25, 0.15),
-        force: new THREE.Vector3(0, 0.003, 0),
+        spawn: new THREE.Vector3(0, 0.2, -3.5),
+        spawnRadius: new THREE.Vector3(1.5, 0.3, 0.3),
+        velocity: new THREE.Vector3(0, 0.03, -0.12),
+        randomness: new THREE.Vector3(0.2, 0.15, 0.1),
+        force: new THREE.Vector3(0, 0.001, 0),
         friction: 0.97
       });
 
@@ -362,11 +362,19 @@
         return false;
       }
 
+      var existing = preferences.load();
+      var trailSize = (existing.ship && existing.ship.trail && typeof existing.ship.trail.size === 'number')
+        ? existing.ship.trail.size : 2;
+
       var data = {
         ship: {
           colors: {
             body: colorNumberToHexString(customization.shipColor),
             engine: colorNumberToHexString(customization.boosterColor)
+          },
+          trail: {
+            color: colorNumberToHexString(garageTrailColor),
+            size: trailSize
           }
         }
       };

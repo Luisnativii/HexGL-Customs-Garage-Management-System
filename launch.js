@@ -58,6 +58,7 @@
       }
       var bodyColor = garageHexStringToNumber(prefs.ship.colors.body);
       var engineColor = garageHexStringToNumber(prefs.ship.colors.engine);
+      var trailColor = garageHexStringToNumber((prefs.ship.trail && prefs.ship.trail.color) ? prefs.ship.trail.color : '#ffffff');
       console.log('launch.js: Applying garage customization', prefs);
 
       // Get the track object (contains materials)
@@ -87,6 +88,11 @@
       var shipMesh = shipControls && shipControls.mesh;
       if (shipMesh) {
         applyEngineColorToNode(shipMesh, engineColor, shipMesh);
+      }
+      
+      // Apply trail color
+      if (hexGL.components.shipEffects) {
+        hexGL.components.shipEffects.updateParticleTrail(trailColor);
       }
     } catch(e) {
       console.warn('launch.js: Error applying garage customization', e);

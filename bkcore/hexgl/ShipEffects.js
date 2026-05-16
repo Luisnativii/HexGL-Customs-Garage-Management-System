@@ -53,11 +53,12 @@ bkcore.hexgl.ShipEffects = function(opts)
 			{
 				randomness: new THREE.Vector3(0.4,0.4,0.4),
 				tint: trailTint,
-				color: 0xffc000,
+				color: 0xffffff,
 				color2: 0xffffff,
 				texture: opts.textureSpark,
 				size: trailSize,
 				life: 60,
+				depthTest: true,
 				max: 200
 			}),
 
@@ -65,12 +66,13 @@ bkcore.hexgl.ShipEffects = function(opts)
 			{
 				opacity: 0.8,
 				tint: trailTint,
-				color: 0x666666,
-				color2: 0xa4f1ff,
+				color: 0xffffff,
+				color2: 0xffffff,
 				texture: opts.textureCloud,
 				size: trailSize * 3,
 				blending: THREE.NormalBlending,
 				life: 60,
+				depthTest: true,
 				max: 200,
 				spawn: new THREE.Vector3(3,-0.3,0),
 				spawnRadius: new THREE.Vector3(1,1,2),
@@ -82,11 +84,12 @@ bkcore.hexgl.ShipEffects = function(opts)
 			{
 				randomness: new THREE.Vector3(0.4,0.4,0.4),
 				tint: trailTint,
-				color: 0xffc000,
+				color: 0xffffff,
 				color2: 0xffffff,
 				texture: opts.textureSpark,
 				size: trailSize,
 				life: 60,
+				depthTest: true,
 				max: 200
 			}),
 
@@ -94,20 +97,43 @@ bkcore.hexgl.ShipEffects = function(opts)
 			{
 				opacity: 0.8,
 				tint: trailTint,
-				color: 0x666666,
-				color2: 0xa4f1ff,
+				color: 0xffffff,
+				color2: 0xffffff,
 				texture: opts.textureCloud,
 				size: trailSize * 3,
 				blending: THREE.NormalBlending,
 				life: 60,
+				depthTest: true,
 				max: 200,
 				spawn: new THREE.Vector3(-3,-0.3,0),
 				spawnRadius: new THREE.Vector3(1,1,2),
 				velocity: new THREE.Vector3(0,0,-0.4),
 				randomness: new THREE.Vector3(0.05,0.05,0.1)
+			}),
+			
+			engineTrail: new bkcore.threejs.Particles(
+			{
+				max: 400,
+				spawnRate: 3,
+				tint: trailTint,
+				color: 0xffffff,
+				color2: 0xffffff,
+				texture: opts.textureCloud,
+				size: trailSize * 2,
+				life: 50,
+				opacity: 0.85,
+				blending: THREE.AdditiveBlending,
+				depthTest: true,
+				spawn: new THREE.Vector3(0, 0.2, -1.0),
+				spawnRadius: new THREE.Vector3(1.0, 0.3, 0.3),
+				velocity: new THREE.Vector3(0, 0.03, -0.4),
+				randomness: new THREE.Vector3(0.2, 0.15, 0.1),
+				force: new THREE.Vector3(0, 0.001, 0),
+				friction: 0.97
 			})
 		};
 
+		this.shipControls.mesh.add(this.particles.engineTrail.system);
 		this.shipControls.mesh.add(this.particles.leftClouds.system);
 		this.shipControls.mesh.add(this.particles.rightClouds.system);
 		this.scene.add(this.particles.leftSparks.system);
@@ -194,6 +220,9 @@ bkcore.hexgl.ShipEffects.prototype.update = function(dt)
 		this.particles.rightClouds.update(dt);
 		this.particles.leftSparks.update(dt);
 		this.particles.leftClouds.update(dt);
+		if(this.particles.engineTrail) {
+			this.particles.engineTrail.update(dt);
+		}
 	}
 }
 
@@ -206,6 +235,7 @@ bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size
 	p.rightSparks.setTint(hexColor);
 	p.leftClouds.setTint(hexColor);
 	p.rightClouds.setTint(hexColor);
+	if(p.engineTrail) p.engineTrail.setTint(hexColor);
 
 	if(size !== undefined)
 	{
@@ -213,5 +243,6 @@ bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size
 		p.rightSparks.setSize(size);
 		p.leftClouds.setSize(size * 3);
 		p.rightClouds.setSize(size * 3);
+		if(p.engineTrail) p.engineTrail.setSize(size * 2);
 	}
 }

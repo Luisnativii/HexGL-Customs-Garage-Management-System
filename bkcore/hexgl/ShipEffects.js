@@ -35,12 +35,17 @@ bkcore.hexgl.ShipEffects = function(opts)
 		this.pOffset.normalize();
 		this.pRad.normalize();
 
-		var prefs = (typeof bkcore.hexgl.GaragePreferences !== 'undefined')
-			? bkcore.hexgl.GaragePreferences
-			: null;
+		var garagePrefs = null;
+		if(typeof bkcore !== 'undefined' && bkcore.garage && bkcore.garage.GaragePreferences)
+			garagePrefs = bkcore.garage.GaragePreferences.load();
 
-		var trailTint = prefs ? prefs.getParticleTint() : 0xffffff;
-		var trailSize = prefs ? prefs.getParticleSize() : 2;
+		var trailTint = 0xffffff;
+		var trailSize = 2;
+		if(garagePrefs && garagePrefs.ship && garagePrefs.ship.trail)
+		{
+			trailTint = parseInt((garagePrefs.ship.trail.color || '#ffffff').replace('#', ''), 16);
+			trailSize = typeof garagePrefs.ship.trail.size === 'number' ? garagePrefs.ship.trail.size : 2;
+		}
 
 		this.particles = {
 

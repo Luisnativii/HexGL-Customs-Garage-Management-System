@@ -7,6 +7,8 @@
   var garageOrbitControls = null;
   var garageShipGroup = null;
   var garageBoosterLight = null;
+  var garageTrailParticles = null;
+  var garageTrailColor = 0xffffff;
 
   function getGaragePreferences()
   {
@@ -29,6 +31,8 @@
   {
     customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
     customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
+    if (prefs.ship && prefs.ship.trail && prefs.ship.trail.color)
+      garageTrailColor = hexStringToColorNumber(prefs.ship.trail.color);
   }
 
   // Current customization state
@@ -112,6 +116,9 @@
 
       // --- Load any saved customization ---
       this.loadCustomization();
+
+      // --- Trail particle preview ---
+      this.createTrailPreview();
 
       // --- Load Ship Model ---
       this.loadShipModel();
@@ -297,6 +304,43 @@
 
 
     /**
+     * Create a continuous particle trail preview in the garage scene
+     */
+    createTrailPreview: function() {
+      if (!garageScene || typeof bkcore === 'undefined' || !bkcore.threejs || !bkcore.threejs.Particles) return;
+
+      garageTrailParticles = new bkcore.threejs.Particles({
+        max: 200,
+        spawnRate: 4,
+        tint: garageTrailColor,
+        color: 0xffc000,
+        color2: 0xffffff,
+        size: 3.5,
+        life: 50,
+        opacity: 0.85,
+        spawn: new THREE.Vector3(0, -0.8, -4),
+        spawnRadius: new THREE.Vector3(2.5, 0.4, 0.5),
+        velocity: new THREE.Vector3(0, 0.015, -0.25),
+        randomness: new THREE.Vector3(0.35, 0.25, 0.15),
+        force: new THREE.Vector3(0, 0.003, 0),
+        friction: 0.97
+      });
+
+      garageScene.add(garageTrailParticles.system);
+    },
+
+    /**
+     * Update the trail preview color in real time
+     * @param {number} hexColor
+     */
+    setTrailColor: function(hexColor) {
+      garageTrailColor = hexColor;
+      if (garageTrailParticles) {
+        garageTrailParticles.setTint(hexColor);
+      }
+    },
+
+    /**
      * Get the current customization state
      * @returns {{ shipColor: number, boosterColor: number }}
      */
@@ -357,6 +401,10 @@
 
       if (garageOrbitControls && typeof garageOrbitControls.update === 'function') {
         garageOrbitControls.update();
+      }
+
+      if (garageTrailParticles) {
+        garageTrailParticles.update(1.0);
       }
 
       garageRenderer.render(garageScene, garageCamera);
@@ -439,6 +487,7 @@
       garageShipGroup = null;
       garageOrbitControls = null;
       garageBoosterLight = null;
+      garageTrailParticles = null;
 
       window.removeEventListener('resize', GarageRenderer.onWindowResize);
     }

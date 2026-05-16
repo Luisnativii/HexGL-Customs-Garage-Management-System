@@ -7,6 +7,8 @@
   var garageOrbitControls = null;
   var garageShipGroup = null;
   var garageBoosterLight = null;
+  var garageTrailParticles = null;
+  var garageTrailColor = 0xffffff;
 
   function getGaragePreferences()
   {
@@ -29,6 +31,8 @@
   {
     customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
     customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
+    if (prefs.ship && prefs.ship.trail && prefs.ship.trail.color)
+      garageTrailColor = hexStringToColorNumber(prefs.ship.trail.color);
   }
 
   // Current customization state
@@ -112,6 +116,9 @@
 
       // --- Load any saved customization ---
       this.loadCustomization();
+
+      // --- Trail particle preview ---
+      this.createTrailPreview();
 
       // --- Load Ship Model ---
       this.loadShipModel();
@@ -297,6 +304,85 @@
 
 
     /**
+     * Create a continuous particle trail preview in the garage scene
+     */
+    createTrailPreview: function() {
+      if (!garageScene || typeof bkcore === 'undefined' || !bkcore.threejs || !bkcore.threejs.Particles) return;
+
+      var texCloud = null;
+      if (THREE.ImageUtils && THREE.ImageUtils.loadTexture) {
+         texCloud = THREE.ImageUtils.loadTexture("textures/particles/cloud.png");
+      }
+
+      var leftTrail = new bkcore.threejs.Particles({
+        max: 200,
+        spawnRate: 2,
+        tint: garageTrailColor,
+        color: 0xffffff,
+        color2: 0xffffff,
+        texture: texCloud,
+        size: 3.0,
+        life: 40,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        depthTest: true,
+        spawn: new THREE.Vector3(1.2, 0.2, -3.5),
+        spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+        velocity: new THREE.Vector3(0, 0, -1.0),
+        randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+        force: new THREE.Vector3(0, 0, 0),
+        friction: 0.98
+      });
+
+      var rightTrail = new bkcore.threejs.Particles({
+        max: 200,
+        spawnRate: 2,
+        tint: garageTrailColor,
+        color: 0xffffff,
+        color2: 0xffffff,
+        texture: texCloud,
+        size: 3.0,
+        life: 40,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        depthTest: true,
+        spawn: new THREE.Vector3(-1.2, 0.2, -3.5),
+        spawnRadius: new THREE.Vector3(0.05, 0.05, 0.05),
+        velocity: new THREE.Vector3(0, 0, -1.0),
+        randomness: new THREE.Vector3(0.05, 0.05, 0.05),
+        force: new THREE.Vector3(0, 0, 0),
+        friction: 0.98
+      });
+
+      garageScene.add(leftTrail.system);
+      garageScene.add(rightTrail.system);
+
+      garageTrailParticles = {
+        left: leftTrail,
+        right: rightTrail,
+        setTint: function(hex) {
+          this.left.setTint(hex);
+          this.right.setTint(hex);
+        },
+        update: function(dt) {
+          this.left.update(dt);
+          this.right.update(dt);
+        }
+      };
+    },
+
+    /**
+     * Update the trail preview color in real time
+     * @param {number} hexColor
+     */
+    setTrailColor: function(hexColor) {
+      garageTrailColor = hexColor;
+      if (garageTrailParticles) {
+        garageTrailParticles.setTint(hexColor);
+      }
+    },
+
+    /**
      * Get the current customization state
      * @returns {{ shipColor: number, boosterColor: number }}
      */
@@ -318,11 +404,19 @@
         return false;
       }
 
+      var existing = preferences.load();
+      var trailSize = (existing.ship && existing.ship.trail && typeof existing.ship.trail.size === 'number')
+        ? existing.ship.trail.size : 2;
+
       var data = {
         ship: {
           colors: {
             body: colorNumberToHexString(customization.shipColor),
             engine: colorNumberToHexString(customization.boosterColor)
+          },
+          trail: {
+            color: colorNumberToHexString(garageTrailColor),
+            size: trailSize
           }
         }
       };
@@ -357,6 +451,10 @@
 
       if (garageOrbitControls && typeof garageOrbitControls.update === 'function') {
         garageOrbitControls.update();
+      }
+
+      if (garageTrailParticles) {
+        garageTrailParticles.update(1.0);
       }
 
       garageRenderer.render(garageScene, garageCamera);
@@ -439,6 +537,7 @@
       garageShipGroup = null;
       garageOrbitControls = null;
       garageBoosterLight = null;
+      garageTrailParticles = null;
 
       window.removeEventListener('resize', GarageRenderer.onWindowResize);
     }

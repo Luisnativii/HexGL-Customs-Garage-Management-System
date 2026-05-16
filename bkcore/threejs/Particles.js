@@ -27,6 +27,7 @@ bkcore.threejs.Particles = function(opts)
 		size: opts.size == undefined ? 4 : opts.size,
 		blending: opts.blending == undefined ? THREE.AdditiveBlending : opts.blending,
 		depthTest: opts.depthTest == undefined ? false : opts.depthTest,
+		depthWrite: false,
 		transparent: opts.transparent == undefined ? true : opts.transparent,
 		vertexColors: true,
 		opacity: opts.opacity == undefined ? 1.0 : opts.opacity,
@@ -188,4 +189,14 @@ bkcore.threejs.Particle.prototype.reset = function()
 	this.basecolor.setRGB(0,0,0);
 	this.life = 0.0;
 	this.available = true;
+}
+
+bkcore.threejs.Particles.prototype.setTint = function(hexColor)
+{
+	this.material.color.setHex(hexColor);
+}
+
+bkcore.threejs.Particles.prototype.setSize = function(size)
+{
+	this.material.size = size;
 }

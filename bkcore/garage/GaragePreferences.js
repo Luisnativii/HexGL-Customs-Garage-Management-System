@@ -18,6 +18,10 @@ bkcore.garage.GaragePreferences = (function() {
 			colors: {
 				body: '#ffffff',
 				engine: '#00a2ff'
+			},
+			trail: {
+				color: '#ffffff',
+				size: 2
 			}
 		}
 	};
@@ -62,6 +66,10 @@ bkcore.garage.GaragePreferences = (function() {
 		var body = normalizeColor(storedColors.body);
 		var engine = normalizeColor(storedColors.engine);
 
+		var storedTrail = (prefs && prefs.ship && prefs.ship.trail) ? prefs.ship.trail : {};
+		var trailColor = normalizeColor(storedTrail.color);
+		var trailSize = typeof storedTrail.size === 'number' ? storedTrail.size : DEFAULTS.ship.trail.size;
+
 		if(options && options.warnInvalidColors)
 		{
 			if(!prefs || !prefs.ship || !prefs.ship.colors)
@@ -78,6 +86,8 @@ bkcore.garage.GaragePreferences = (function() {
 			: new Date().toISOString();
 		defaults.ship.colors.body = body || DEFAULTS.ship.colors.body;
 		defaults.ship.colors.engine = engine || DEFAULTS.ship.colors.engine;
+		defaults.ship.trail.color = trailColor || DEFAULTS.ship.trail.color;
+		defaults.ship.trail.size = trailSize;
 
 		return defaults;
 	}

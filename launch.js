@@ -58,6 +58,7 @@
       }
       var bodyColor = garageHexStringToNumber(prefs.ship.colors.body);
       var engineColor = garageHexStringToNumber(prefs.ship.colors.engine);
+      var trailColor = garageHexStringToNumber((prefs.ship.trail && prefs.ship.trail.color) ? prefs.ship.trail.color : '#ffffff');
       console.log('launch.js: Applying garage customization', prefs);
 
       // Get the track object (contains materials)
@@ -87,6 +88,11 @@
       var shipMesh = shipControls && shipControls.mesh;
       if (shipMesh) {
         applyEngineColorToNode(shipMesh, engineColor, shipMesh);
+      }
+      
+      // Apply trail color
+      if (hexGL.components.shipEffects) {
+        hexGL.components.shipEffects.updateParticleTrail(trailColor);
       }
     } catch(e) {
       console.warn('launch.js: Error applying garage customization', e);
@@ -180,6 +186,28 @@
   // ═══════════════════════════════════════════════════════════
 
   var garagePanelOpen = false;
+
+  // ── Trail color state ──
+  var currentTrailColor = '#ffffff';
+
+  function loadTrailColor() {
+    try {
+      var prefs = bkcore.garage.GaragePreferences.load();
+      if (prefs && prefs.ship && prefs.ship.trail && prefs.ship.trail.color) {
+        currentTrailColor = prefs.ship.trail.color;
+      }
+    } catch(e) {}
+  }
+
+  function saveTrailColor(hexString) {
+    try {
+      var prefs = bkcore.garage.GaragePreferences.load();
+      if (!prefs.ship.trail) prefs.ship.trail = {};
+      prefs.ship.trail.color = hexString;
+      bkcore.garage.GaragePreferences.save(prefs);
+      currentTrailColor = hexString;
+    } catch(e) {}
+  }
 
   function returnToMenu() {
     // Close panel if open
@@ -293,12 +321,28 @@
     // Update custom picker
     var boosterPicker = $('booster-custom-color');
     if (boosterPicker) boosterPicker.value = garageColorNumberToHexString(state.boosterColor);
+
+    // Trail color swatches
+    loadTrailColor();
+    var currentTrailNum = parseInt(currentTrailColor.replace('#', ''), 16);
+    var trailSwatches = document.querySelectorAll('#trail-color-grid .color-swatch');
+    for (var k = 0; k < trailSwatches.length; k++) {
+      var tColorVal = parseInt(trailSwatches[k].getAttribute('data-color'));
+      if (tColorVal === currentTrailNum) {
+        trailSwatches[k].classList.add('active');
+      } else {
+        trailSwatches[k].classList.remove('active');
+      }
+    }
+    var trailPicker = $('trail-custom-color');
+    if (trailPicker) trailPicker.value = currentTrailColor;
   }
 
   // ── Open Garage ──
   $('s-garage').onclick = function() {
     $('step-1').style.display = 'none';
     $('garage').style.display = 'block';
+    loadTrailColor();
     GarageRenderer.init($('garage-viewport'));
     syncSwatchesWithState();
   };
@@ -397,14 +441,52 @@
       });
     }
 
+    // ── Trail color swatches ──
+    var trailGrid = $('trail-color-grid');
+    if (trailGrid) {
+      trailGrid.addEventListener('click', function(event) {
+        var swatch = event.target.closest('.color-swatch');
+        if (!swatch) return;
+        preventGarageClickBubble(event);
+
+        var colorHex = parseInt(swatch.getAttribute('data-color'));
+        var hexString = garageColorNumberToHexString(colorHex);
+        saveTrailColor(hexString);
+        GarageRenderer.setTrailColor(colorHex);
+
+        var siblings = trailGrid.querySelectorAll('.color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+        swatch.classList.add('active');
+
+        var picker = $('trail-custom-color');
+        if (picker) picker.value = hexString;
+      });
+    }
+
+    // ── Trail custom color picker ──
+    var trailPickerEl = $('trail-custom-color');
+    if (trailPickerEl) {
+      trailPickerEl.addEventListener('input', function() {
+        saveTrailColor(this.value);
+        GarageRenderer.setTrailColor(parseInt(this.value.replace('#', ''), 16));
+        var siblings = document.querySelectorAll('#trail-color-grid .color-swatch');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+      });
+    }
+
     // ── Reset button ──
     var resetBtn = $('garage-reset-colors');
     if (resetBtn) {
       resetBtn.onclick = function(event) {
         preventGarageClickBubble(event);
-        var prefs = bkcore.garage.GaragePreferences.getDefaults();
-        GarageRenderer.setShipColor(garageHexStringToNumber(prefs.ship.colors.body));
-        GarageRenderer.setBoosterColor(garageHexStringToNumber(prefs.ship.colors.engine));
+        var defaults = bkcore.garage.GaragePreferences.getDefaults();
+        GarageRenderer.setShipColor(garageHexStringToNumber(defaults.ship.colors.body));
+        GarageRenderer.setBoosterColor(garageHexStringToNumber(defaults.ship.colors.engine));
+        saveTrailColor(defaults.ship.trail.color);
         syncSwatchesWithState();
         showToast('↺ Colores restablecidos');
         return false;

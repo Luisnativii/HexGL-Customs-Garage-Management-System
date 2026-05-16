@@ -189,3 +189,13 @@ bkcore.threejs.Particle.prototype.reset = function()
 	this.life = 0.0;
 	this.available = true;
 }
+
+bkcore.threejs.Particles.prototype.setTint = function(hexColor)
+{
+	this.material.color.setHex(hexColor);
+}
+
+bkcore.threejs.Particles.prototype.setSize = function(size)
+{
+	this.material.size = size;
+}

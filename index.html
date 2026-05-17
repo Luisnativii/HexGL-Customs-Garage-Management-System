@@ -203,6 +203,28 @@
             </div>
           </div>
 
+          <!-- Ship Material Preset -->
+          <div class="panel-section">
+            <div class="panel-section-title">
+              <span class="panel-icon">◆</span> Material de la Nave
+            </div>
+            <p class="panel-desc">Ajusta el brillo y reflejo de la superficie.</p>
+            <div class="material-preset-grid" id="material-preset-grid">
+              <button class="material-preset active" type="button" data-preset="metallic">
+                <span class="preset-name">Metálico</span>
+              </button>
+              <button class="material-preset" type="button" data-preset="matte">
+                <span class="preset-name">Mate</span>
+              </button>
+              <button class="material-preset" type="button" data-preset="holographic">
+                <span class="preset-name">Holográfico</span>
+              </button>
+              <button class="material-preset" type="button" data-preset="stealth">
+                <span class="preset-name">Sigilo</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Particle Trail Color -->
           <div class="panel-section">
             <div class="panel-section-title">
@@ -239,6 +261,11 @@
               <label for="trail-custom-color">Personalizado:</label>
               <input type="color" id="trail-custom-color" value="#ffffff">
             </div>
+            <div class="range-row">
+              <label for="trail-size">Tamaño:</label>
+              <input type="range" id="trail-size" min="0.5" max="4" step="0.1" value="2">
+              <span id="trail-size-value" class="range-value">2.0</span>
+            </div>
           </div>
 
           <!-- Reset -->
@@ -270,6 +297,7 @@
     <script src="libs/DAT.GUI.min.js"></script>
 
     <script src="bkcore/garage/GaragePreferences.js"></script>
+    <script src="bkcore/garage/GarageMaterialPresets.js"></script>
     <script src="garage-renderer.js?v=4"></script>
 
     <script src="bkcore.coffee/controllers/TouchController.js"></script>

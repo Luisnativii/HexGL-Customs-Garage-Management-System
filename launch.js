@@ -58,7 +58,16 @@
       }
       var bodyColor = garageHexStringToNumber(prefs.ship.colors.body);
       var engineColor = garageHexStringToNumber(prefs.ship.colors.engine);
-      var trailColor = garageHexStringToNumber((prefs.ship.trail && prefs.ship.trail.color) ? prefs.ship.trail.color : '#ffffff');
+      var trailHex = (prefs.ship.colors && prefs.ship.colors.trail)
+        ? prefs.ship.colors.trail
+        : ((prefs.ship.trail && prefs.ship.trail.color) ? prefs.ship.trail.color : '#ffffff');
+      var trailColor = garageHexStringToNumber(trailHex);
+      var trailSize = (prefs.ship.particles && typeof prefs.ship.particles.size === 'number')
+        ? prefs.ship.particles.size
+        : ((prefs.ship.trail && typeof prefs.ship.trail.size === 'number') ? prefs.ship.trail.size : 2);
+      var materialPreset = (prefs.ship.material && prefs.ship.material.preset)
+        ? prefs.ship.material.preset
+        : 'metallic';
       console.log('launch.js: Applying garage customization', prefs);
 
       // Get the track object (contains materials)
@@ -82,6 +91,11 @@
         console.log('launch.js: Applied ship color (BasicMaterial) 0x' + bodyColor.toString(16));
       }
 
+      if (bkcore.garage && bkcore.garage.MaterialPresets) {
+        bkcore.garage.MaterialPresets.applyToMaterial(shipMat, materialPreset);
+        console.log('launch.js: Applied material preset ' + materialPreset);
+      }
+
       // Apply booster light color
       // Try to find PointLights and booster meshes via the ship mesh children
       var shipControls = hexGL.components.shipControls;
@@ -92,7 +106,7 @@
       
       // Apply trail color
       if (hexGL.components.shipEffects) {
-        hexGL.components.shipEffects.updateParticleTrail(trailColor);
+        hexGL.components.shipEffects.updateParticleTrail(trailColor, trailSize);
       }
     } catch(e) {
       console.warn('launch.js: Error applying garage customization', e);
@@ -189,24 +203,42 @@
 
   // ── Trail color state ──
   var currentTrailColor = '#ffffff';
+  var currentTrailSize = 2;
+  var currentMaterialPreset = 'metallic';
 
-  function loadTrailColor() {
+  function loadGarageDetailState() {
     try {
       var prefs = bkcore.garage.GaragePreferences.load();
-      if (prefs && prefs.ship && prefs.ship.trail && prefs.ship.trail.color) {
-        currentTrailColor = prefs.ship.trail.color;
+      if (prefs && prefs.ship) {
+        if (prefs.ship.colors && prefs.ship.colors.trail) {
+          currentTrailColor = prefs.ship.colors.trail;
+        } else if (prefs.ship.trail && prefs.ship.trail.color) {
+          currentTrailColor = prefs.ship.trail.color;
+        }
+
+        if (prefs.ship.particles && typeof prefs.ship.particles.size === 'number') {
+          currentTrailSize = prefs.ship.particles.size;
+        } else if (prefs.ship.trail && typeof prefs.ship.trail.size === 'number') {
+          currentTrailSize = prefs.ship.trail.size;
+        }
+
+        if (prefs.ship.material && prefs.ship.material.preset) {
+          currentMaterialPreset = prefs.ship.material.preset;
+        }
       }
     } catch(e) {}
   }
 
-  function saveTrailColor(hexString) {
-    try {
-      var prefs = bkcore.garage.GaragePreferences.load();
-      if (!prefs.ship.trail) prefs.ship.trail = {};
-      prefs.ship.trail.color = hexString;
-      bkcore.garage.GaragePreferences.save(prefs);
-      currentTrailColor = hexString;
-    } catch(e) {}
+  function setTrailColor(hexString) {
+    currentTrailColor = hexString;
+  }
+
+  function setTrailSize(size) {
+    currentTrailSize = size;
+  }
+
+  function setMaterialPreset(preset) {
+    currentMaterialPreset = preset;
   }
 
   function returnToMenu() {
@@ -322,9 +354,20 @@
     var boosterPicker = $('booster-custom-color');
     if (boosterPicker) boosterPicker.value = garageColorNumberToHexString(state.boosterColor);
 
+    // Material preset buttons
+    currentMaterialPreset = state.materialPreset;
+    var materialButtons = document.querySelectorAll('#material-preset-grid .material-preset');
+    for (var m = 0; m < materialButtons.length; m++) {
+      if (materialButtons[m].getAttribute('data-preset') === currentMaterialPreset) {
+        materialButtons[m].classList.add('active');
+      } else {
+        materialButtons[m].classList.remove('active');
+      }
+    }
+
     // Trail color swatches
-    loadTrailColor();
-    var currentTrailNum = parseInt(currentTrailColor.replace('#', ''), 16);
+    currentTrailColor = garageColorNumberToHexString(state.trailColor);
+    var currentTrailNum = state.trailColor;
     var trailSwatches = document.querySelectorAll('#trail-color-grid .color-swatch');
     for (var k = 0; k < trailSwatches.length; k++) {
       var tColorVal = parseInt(trailSwatches[k].getAttribute('data-color'));
@@ -336,13 +379,19 @@
     }
     var trailPicker = $('trail-custom-color');
     if (trailPicker) trailPicker.value = currentTrailColor;
+
+    currentTrailSize = state.trailSize;
+    var trailSizeInput = $('trail-size');
+    if (trailSizeInput) trailSizeInput.value = currentTrailSize;
+    var trailSizeValue = $('trail-size-value');
+    if (trailSizeValue) trailSizeValue.textContent = currentTrailSize.toFixed(1);
   }
 
   // ── Open Garage ──
   $('s-garage').onclick = function() {
     $('step-1').style.display = 'none';
     $('garage').style.display = 'block';
-    loadTrailColor();
+    loadGarageDetailState();
     GarageRenderer.init($('garage-viewport'));
     syncSwatchesWithState();
   };
@@ -441,6 +490,26 @@
       });
     }
 
+    // ── Material preset buttons ──
+    var materialGrid = $('material-preset-grid');
+    if (materialGrid) {
+      materialGrid.addEventListener('click', function(event) {
+        var button = event.target.closest('.material-preset');
+        if (!button) return;
+        preventGarageClickBubble(event);
+
+        var preset = button.getAttribute('data-preset');
+        setMaterialPreset(preset);
+        GarageRenderer.setMaterialPreset(preset);
+
+        var siblings = materialGrid.querySelectorAll('.material-preset');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('active');
+        }
+        button.classList.add('active');
+      });
+    }
+
     // ── Trail color swatches ──
     var trailGrid = $('trail-color-grid');
     if (trailGrid) {
@@ -451,7 +520,7 @@
 
         var colorHex = parseInt(swatch.getAttribute('data-color'));
         var hexString = garageColorNumberToHexString(colorHex);
-        saveTrailColor(hexString);
+        setTrailColor(hexString);
         GarageRenderer.setTrailColor(colorHex);
 
         var siblings = trailGrid.querySelectorAll('.color-swatch');
@@ -469,12 +538,24 @@
     var trailPickerEl = $('trail-custom-color');
     if (trailPickerEl) {
       trailPickerEl.addEventListener('input', function() {
-        saveTrailColor(this.value);
+        setTrailColor(this.value);
         GarageRenderer.setTrailColor(parseInt(this.value.replace('#', ''), 16));
         var siblings = document.querySelectorAll('#trail-color-grid .color-swatch');
         for (var i = 0; i < siblings.length; i++) {
           siblings[i].classList.remove('active');
         }
+      });
+    }
+
+    // ── Trail size slider ──
+    var trailSizeEl = $('trail-size');
+    if (trailSizeEl) {
+      trailSizeEl.addEventListener('input', function() {
+        var size = parseFloat(this.value);
+        setTrailSize(size);
+        GarageRenderer.setTrailSize(size);
+        var valueEl = $('trail-size-value');
+        if (valueEl) valueEl.textContent = size.toFixed(1);
       });
     }
 
@@ -486,7 +567,12 @@
         var defaults = bkcore.garage.GaragePreferences.getDefaults();
         GarageRenderer.setShipColor(garageHexStringToNumber(defaults.ship.colors.body));
         GarageRenderer.setBoosterColor(garageHexStringToNumber(defaults.ship.colors.engine));
-        saveTrailColor(defaults.ship.trail.color);
+        setTrailColor(defaults.ship.colors.trail);
+        setTrailSize(defaults.ship.particles.size);
+        setMaterialPreset(defaults.ship.material.preset);
+        GarageRenderer.setTrailColor(garageHexStringToNumber(defaults.ship.colors.trail));
+        GarageRenderer.setTrailSize(defaults.ship.particles.size);
+        GarageRenderer.setMaterialPreset(defaults.ship.material.preset);
         syncSwatchesWithState();
         showToast('↺ Colores restablecidos');
         return false;

@@ -9,6 +9,8 @@
   var garageBoosterLight = null;
   var garageTrailParticles = null;
   var garageTrailColor = 0xffffff;
+  var garageTrailSize = 2;
+  var garageMaterialPreset = 'metallic';
 
   function getGaragePreferences()
   {
@@ -31,8 +33,18 @@
   {
     customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
     customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
-    if (prefs.ship && prefs.ship.trail && prefs.ship.trail.color)
+    if (prefs.ship && prefs.ship.colors && prefs.ship.colors.trail)
+      garageTrailColor = hexStringToColorNumber(prefs.ship.colors.trail);
+    else if (prefs.ship && prefs.ship.trail && prefs.ship.trail.color)
       garageTrailColor = hexStringToColorNumber(prefs.ship.trail.color);
+
+    if (prefs.ship && prefs.ship.particles && typeof prefs.ship.particles.size === 'number')
+      garageTrailSize = prefs.ship.particles.size;
+    else if (prefs.ship && prefs.ship.trail && typeof prefs.ship.trail.size === 'number')
+      garageTrailSize = prefs.ship.trail.size;
+
+    if (prefs.ship && prefs.ship.material && prefs.ship.material.preset)
+      garageMaterialPreset = prefs.ship.material.preset;
   }
 
   // Current customization state
@@ -244,6 +256,7 @@
         // Apply saved customization to the loaded ship
         self.applyShipColor(customization.shipColor);
         self.applyBoosterColor(customization.boosterColor);
+        self.applyMaterialPreset(garageMaterialPreset);
 
         console.log('GarageRenderer: Ship added to scene');
       });
@@ -302,6 +315,27 @@
       console.log('GarageRenderer: Booster color set to 0x' + hexColor.toString(16));
     },
 
+    /**
+     * Set the active ship material preset (real-time preview)
+     * @param {string} presetId
+     */
+    setMaterialPreset: function(presetId) {
+      garageMaterialPreset = presetId;
+      this.applyMaterialPreset(presetId);
+    },
+
+    /**
+     * Apply the material preset to the existing ship material instance.
+     */
+    applyMaterialPreset: function(presetId) {
+      if (!garageMesh || !garageMesh.material) return;
+
+      if (bkcore.garage && bkcore.garage.MaterialPresets) {
+        bkcore.garage.MaterialPresets.applyToMaterial(garageMesh.material, presetId);
+      }
+      console.log('GarageRenderer: Material preset set to ' + presetId);
+    },
+
 
     /**
      * Create a continuous particle trail preview in the garage scene
@@ -321,7 +355,7 @@
         color: 0xffffff,
         color2: 0xffffff,
         texture: texCloud,
-        size: 3.0,
+        size: garageTrailSize * 1.5,
         life: 40,
         opacity: 0.7,
         blending: THREE.AdditiveBlending,
@@ -341,7 +375,7 @@
         color: 0xffffff,
         color2: 0xffffff,
         texture: texCloud,
-        size: 3.0,
+        size: garageTrailSize * 1.5,
         life: 40,
         opacity: 0.7,
         blending: THREE.AdditiveBlending,
@@ -383,13 +417,28 @@
     },
 
     /**
+     * Update the trail preview particle size in real time
+     * @param {number} size
+     */
+    setTrailSize: function(size) {
+      garageTrailSize = size;
+      if (garageTrailParticles) {
+        garageTrailParticles.left.setSize(size * 1.5);
+        garageTrailParticles.right.setSize(size * 1.5);
+      }
+    },
+
+    /**
      * Get the current customization state
      * @returns {{ shipColor: number, boosterColor: number }}
      */
     getCustomization: function() {
       return {
         shipColor: customization.shipColor,
-        boosterColor: customization.boosterColor
+        boosterColor: customization.boosterColor,
+        trailColor: garageTrailColor,
+        trailSize: garageTrailSize,
+        materialPreset: garageMaterialPreset
       };
     },
 
@@ -404,19 +453,18 @@
         return false;
       }
 
-      var existing = preferences.load();
-      var trailSize = (existing.ship && existing.ship.trail && typeof existing.ship.trail.size === 'number')
-        ? existing.ship.trail.size : 2;
-
       var data = {
         ship: {
           colors: {
             body: colorNumberToHexString(customization.shipColor),
-            engine: colorNumberToHexString(customization.boosterColor)
+            engine: colorNumberToHexString(customization.boosterColor),
+            trail: colorNumberToHexString(garageTrailColor)
           },
-          trail: {
-            color: colorNumberToHexString(garageTrailColor),
-            size: trailSize
+          material: {
+            preset: garageMaterialPreset
+          },
+          particles: {
+            size: garageTrailSize
           }
         }
       };

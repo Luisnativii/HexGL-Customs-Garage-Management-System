@@ -15,28 +15,37 @@ bkcore.garage.MaterialPresets = (function() {
 			metal: true,
 			shininess: 42,
 			specular: 0xe0e0e0,
-			reflectivity: 0.9
+			reflectivity: 0.9,
+			ambientColor: 0xffffff,
+			diffuseMultiplier: 1.0
 		},
 		matte: {
 			label: 'Mate',
 			metal: false,
-			shininess: 6,
-			specular: 0x111111,
-			reflectivity: 0.15
+			shininess: 8,
+			specular: 0x282828,
+			reflectivity: 0.12,
+			ambientColor: 0xffffff,
+			diffuseMultiplier: 1.0
 		},
 		holographic: {
 			label: 'Holográfico',
 			metal: true,
 			shininess: 120,
 			specular: 0x00ffff,
-			reflectivity: 1.0
+			reflectivity: 1.0,
+			ambientColor: 0x005577,
+			diffuseMultiplier: 1.0
 		},
 		stealth: {
 			label: 'Sigilo',
 			metal: false,
 			shininess: 1,
-			specular: 0x0a0a0a,
-			reflectivity: 0.05
+			specular: 0x080808,
+			reflectivity: 0.02,
+			// Black ambient + heavy diffuse darkening = light-absorbing surface
+			ambientColor: 0x000000,
+			diffuseMultiplier: 0.13
 		}
 	};
 
@@ -68,6 +77,8 @@ bkcore.garage.MaterialPresets = (function() {
 			setUniformValue(material.uniforms.uShininess, preset.shininess);
 			setUniformColor(material.uniforms.uSpecularColor, preset.specular);
 			setUniformValue(material.uniforms.uReflectivity, preset.reflectivity);
+			if(preset.ambientColor !== undefined)
+				setUniformColor(material.uniforms.uAmbientColor, preset.ambientColor);
 		}
 
 		if(material.specular && typeof material.specular.setHex === 'function')

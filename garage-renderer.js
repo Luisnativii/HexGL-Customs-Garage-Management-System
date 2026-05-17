@@ -11,6 +11,29 @@
   var garageTrailColor = 0xffffff;
   var garageTrailSize = 2;
   var garageMaterialPreset = 'metallic';
+  var garageRainbowTime = 0;
+
+  function hslToHex(h, s, l) {
+    var r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      function hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      }
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+  }
 
   function getGaragePreferences()
   {
@@ -293,13 +316,24 @@
 
       var mat = garageMesh.material;
 
+      // Apply diffuseMultiplier from the active preset (e.g. stealth darkening)
+      var displayColor = hexColor;
+      var preset = bkcore.garage && bkcore.garage.MaterialPresets
+        ? bkcore.garage.MaterialPresets.get(garageMaterialPreset) : null;
+      if (preset && preset.diffuseMultiplier !== undefined && preset.diffuseMultiplier < 1.0) {
+        var dm = preset.diffuseMultiplier;
+        displayColor = (Math.round(((hexColor >> 16) & 0xff) * dm) << 16) |
+                       (Math.round(((hexColor >> 8)  & 0xff) * dm) << 8)  |
+                        Math.round( (hexColor         & 0xff) * dm);
+      }
+
       // ShaderMaterial (from createNormalMaterial) — use uniforms
       if (mat instanceof THREE.ShaderMaterial && mat.uniforms && mat.uniforms['uDiffuseColor']) {
-        mat.uniforms['uDiffuseColor'].value.setHex(hexColor);
+        mat.uniforms['uDiffuseColor'].value.setHex(displayColor);
       }
       // MeshPhongMaterial — use color property
       else if (mat.color && typeof mat.color.setHex === 'function') {
-        mat.color.setHex(hexColor);
+        mat.color.setHex(displayColor);
       }
 
       console.log('GarageRenderer: Ship color set to 0x' + hexColor.toString(16));
@@ -321,7 +355,9 @@
      */
     setMaterialPreset: function(presetId) {
       garageMaterialPreset = presetId;
+      garageRainbowTime = 0;
       this.applyMaterialPreset(presetId);
+      // applyMaterialPreset calls applyShipColor which handles darkening/restore automatically
     },
 
     /**
@@ -333,6 +369,8 @@
       if (bkcore.garage && bkcore.garage.MaterialPresets) {
         bkcore.garage.MaterialPresets.applyToMaterial(garageMesh.material, presetId);
       }
+      // Re-apply ship color so diffuseMultiplier (stealth darkening) or restoration takes effect
+      this.applyShipColor(customization.shipColor);
       console.log('GarageRenderer: Material preset set to ' + presetId);
     },
 
@@ -503,6 +541,40 @@
 
       if (garageTrailParticles) {
         garageTrailParticles.update(1.0);
+      }
+
+      if (garageMaterialPreset === 'holographic' && garageMesh && garageMesh.material && garageMesh.material.uniforms) {
+        garageRainbowTime += 0.006;
+        var uniforms = garageMesh.material.uniforms;
+
+        var hue1 = (garageRainbowTime * 0.38) % 1.0;
+        var hue2 = (garageRainbowTime * 1.1 + 0.33) % 1.0;
+        var pulse = 0.5 + 0.5 * Math.sin(garageRainbowTime * 2.2);
+
+        // Ambient: bright cycling color on all lit surfaces
+        if (uniforms.uAmbientColor)
+          uniforms.uAmbientColor.value.setHex(hslToHex(hue1, 1.0, 0.28 + 0.10 * pulse));
+
+        // Specular: fast rainbow shimmer on highlights
+        if (uniforms.uSpecularColor)
+          uniforms.uSpecularColor.value.setHex(hslToHex(hue2, 1.0, 0.60));
+
+        // Diffuse tint: blend base ship color with rainbow — this is the main visible effect
+        if (uniforms.uDiffuseColor) {
+          var baseR = (customization.shipColor >> 16) & 0xff;
+          var baseG = (customization.shipColor >> 8) & 0xff;
+          var baseB = customization.shipColor & 0xff;
+          var rainbowHex = hslToHex(hue1, 1.0, 0.50);
+          var rR = (rainbowHex >> 16) & 0xff;
+          var rG = (rainbowHex >> 8) & 0xff;
+          var rB = rainbowHex & 0xff;
+          var strength = 0.30 + 0.12 * pulse;
+          uniforms.uDiffuseColor.value.setHex(
+            (Math.round(baseR * (1 - strength) + rR * strength) << 16) |
+            (Math.round(baseG * (1 - strength) + rG * strength) << 8) |
+             Math.round(baseB * (1 - strength) + rB * strength)
+          );
+        }
       }
 
       garageRenderer.render(garageScene, garageCamera);

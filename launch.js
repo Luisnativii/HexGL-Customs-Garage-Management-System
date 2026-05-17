@@ -17,6 +17,28 @@
     return '#' + ('000000' + hexColor.toString(16)).slice(-6).toLowerCase();
   }
 
+  function gameHslToHex(h, s, l) {
+    var r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      function hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      }
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+  }
+
   function getGaragePrefs() {
     if (bkcore && bkcore.garage && bkcore.garage.GaragePreferences) {
       return bkcore.garage.GaragePreferences.load();
@@ -80,30 +102,73 @@
       // Apply ship body color tint
       var shipMat = track.materials.ship;
 
-      // ShaderMaterial (high quality) — uDiffuseColor uniform
-      if (shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
-        shipMat.uniforms['uDiffuseColor'].value.setHex(bodyColor);
-        console.log('launch.js: Applied ship color (ShaderMaterial) 0x' + bodyColor.toString(16));
-      }
-      // MeshBasicMaterial / MeshPhongMaterial — .color property
-      else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
-        shipMat.color.setHex(bodyColor);
-        console.log('launch.js: Applied ship color (BasicMaterial) 0x' + bodyColor.toString(16));
-      }
-
+      // Apply material preset first (sets shininess, specular, reflectivity, ambientColor)
       if (bkcore.garage && bkcore.garage.MaterialPresets) {
         bkcore.garage.MaterialPresets.applyToMaterial(shipMat, materialPreset);
         console.log('launch.js: Applied material preset ' + materialPreset);
       }
 
+      // Apply diffuse color respecting the preset's diffuseMultiplier (e.g. stealth darkening)
+      var preset = bkcore.garage && bkcore.garage.MaterialPresets
+        ? bkcore.garage.MaterialPresets.get(materialPreset) : null;
+      var displayBodyColor = bodyColor;
+      if (preset && preset.diffuseMultiplier !== undefined && preset.diffuseMultiplier < 1.0) {
+        var dm = preset.diffuseMultiplier;
+        displayBodyColor = (Math.round(((bodyColor >> 16) & 0xff) * dm) << 16) |
+                           (Math.round(((bodyColor >> 8)  & 0xff) * dm) << 8)  |
+                            Math.round( (bodyColor         & 0xff) * dm);
+      }
+
+      if (shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {
+        shipMat.uniforms['uDiffuseColor'].value.setHex(displayBodyColor);
+        console.log('launch.js: Applied ship color 0x' + displayBodyColor.toString(16));
+      } else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
+        shipMat.color.setHex(displayBodyColor);
+        console.log('launch.js: Applied ship color (BasicMaterial) 0x' + displayBodyColor.toString(16));
+      }
+
+      // Holographic: patch hexGL.update to animate rainbow each frame in-game
+      if (materialPreset === 'holographic' && shipMat.uniforms) {
+        var gameRainbowTime = 0;
+        var gameBodyColor = bodyColor;
+        var _origUpdate = hexGL.update.bind(hexGL);
+        hexGL.update = function() {
+          _origUpdate();
+          gameRainbowTime += 0.006;
+          var uniforms = shipMat.uniforms;
+          var hue1 = (gameRainbowTime * 0.38) % 1.0;
+          var hue2 = (gameRainbowTime * 1.1 + 0.33) % 1.0;
+          var pulse = 0.5 + 0.5 * Math.sin(gameRainbowTime * 2.2);
+          if (uniforms.uAmbientColor)
+            uniforms.uAmbientColor.value.setHex(gameHslToHex(hue1, 1.0, 0.28 + 0.10 * pulse));
+          if (uniforms.uSpecularColor)
+            uniforms.uSpecularColor.value.setHex(gameHslToHex(hue2, 1.0, 0.60));
+          if (uniforms.uDiffuseColor) {
+            var baseR = (gameBodyColor >> 16) & 0xff;
+            var baseG = (gameBodyColor >> 8)  & 0xff;
+            var baseB =  gameBodyColor        & 0xff;
+            var rainbowHex = gameHslToHex(hue1, 1.0, 0.50);
+            var rR = (rainbowHex >> 16) & 0xff;
+            var rG = (rainbowHex >> 8)  & 0xff;
+            var rB =  rainbowHex        & 0xff;
+            var strength = 0.30 + 0.12 * pulse;
+            uniforms.uDiffuseColor.value.setHex(
+              (Math.round(baseR * (1 - strength) + rR * strength) << 16) |
+              (Math.round(baseG * (1 - strength) + rG * strength) << 8)  |
+               Math.round(baseB * (1 - strength) + rB * strength)
+            );
+          }
+        };
+        console.log('launch.js: Holographic rainbow animation enabled in-game');
+      }
+
       // Apply booster light color
-      // Try to find PointLights and booster meshes via the ship mesh children
       var shipControls = hexGL.components.shipControls;
       var shipMesh = shipControls && shipControls.mesh;
       if (shipMesh) {
         applyEngineColorToNode(shipMesh, engineColor, shipMesh);
       }
-      
+
       // Apply trail color
       if (hexGL.components.shipEffects) {
         hexGL.components.shipEffects.updateParticleTrail(trailColor, trailSize);

@@ -364,6 +364,7 @@ bkcore.hexgl.tracks.Cityscape = {
 		var garagePrefs = null;
 		var garageBodyColor = 0xffffff;
 		var garageEngineColor = 0x00a2ff;
+		var garageMaterialPreset = 'metallic';
 
 		try {
 			if(bkcore.garage && bkcore.garage.GaragePreferences)
@@ -371,6 +372,8 @@ bkcore.hexgl.tracks.Cityscape = {
 				garagePrefs = bkcore.garage.GaragePreferences.load();
 				garageBodyColor = parseInt(garagePrefs.ship.colors.body.replace('#', ''), 16);
 				garageEngineColor = parseInt(garagePrefs.ship.colors.engine.replace('#', ''), 16);
+				if(garagePrefs.ship.material && garagePrefs.ship.material.preset)
+					garageMaterialPreset = garagePrefs.ship.material.preset;
 			}
 		} catch(e) {
 			console.warn('Cityscape: Could not load garage preferences', e);
@@ -433,6 +436,10 @@ bkcore.hexgl.tracks.Cityscape = {
 			}
 			else if (shipMat.color && typeof shipMat.color.setHex === 'function') {
 				shipMat.color.setHex(garageBodyColor);
+			}
+
+			if (bkcore.garage && bkcore.garage.MaterialPresets) {
+				bkcore.garage.MaterialPresets.applyToMaterial(shipMat, garageMaterialPreset);
 			}
 
 			if (this.materials.booster && this.materials.booster.color && typeof this.materials.booster.color.setHex === 'function') {

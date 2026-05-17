@@ -41,10 +41,17 @@ bkcore.hexgl.ShipEffects = function(opts)
 
 		var trailTint = 0xffffff;
 		var trailSize = 2;
-		if(garagePrefs && garagePrefs.ship && garagePrefs.ship.trail)
+		if(garagePrefs && garagePrefs.ship)
 		{
-			trailTint = parseInt((garagePrefs.ship.trail.color || '#ffffff').replace('#', ''), 16);
-			trailSize = typeof garagePrefs.ship.trail.size === 'number' ? garagePrefs.ship.trail.size : 2;
+			if(garagePrefs.ship.colors && garagePrefs.ship.colors.trail)
+				trailTint = parseInt(garagePrefs.ship.colors.trail.replace('#', ''), 16);
+			else if(garagePrefs.ship.trail && garagePrefs.ship.trail.color)
+				trailTint = parseInt(garagePrefs.ship.trail.color.replace('#', ''), 16);
+
+			if(garagePrefs.ship.particles && typeof garagePrefs.ship.particles.size === 'number')
+				trailSize = garagePrefs.ship.particles.size;
+			else if(garagePrefs.ship.trail && typeof garagePrefs.ship.trail.size === 'number')
+				trailSize = garagePrefs.ship.trail.size;
 		}
 
 		this.particles = {
@@ -254,13 +261,13 @@ bkcore.hexgl.ShipEffects.prototype.updateParticleTrail = function(hexColor, size
 	if(!this.useParticles) return;
 
 	var p = this.particles;
-	p.leftSparks.setTint(hexColor);
-	p.rightSparks.setTint(hexColor);
-	p.leftClouds.setTint(hexColor);
-	p.rightClouds.setTint(hexColor);
+	p.leftSparks.material.color.setHex(hexColor);
+	p.rightSparks.material.color.setHex(hexColor);
+	p.leftClouds.material.color.setHex(hexColor);
+	p.rightClouds.material.color.setHex(hexColor);
 	if(p.leftEngineTrail) {
-		p.leftEngineTrail.setTint(hexColor);
-		p.rightEngineTrail.setTint(hexColor);
+		p.leftEngineTrail.material.color.setHex(hexColor);
+		p.rightEngineTrail.material.color.setHex(hexColor);
 	}
 
 	if(size !== undefined)

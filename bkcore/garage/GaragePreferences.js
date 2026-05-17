@@ -10,6 +10,14 @@ bkcore.garage.GaragePreferences = (function() {
 	var STORAGE_KEY = 'hexgl:userPrefs';
 	var SCHEMA_VERSION = 1;
 	var HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+	var VALID_MATERIAL_PRESETS = {
+		metallic: true,
+		matte: true,
+		holographic: true,
+		stealth: true
+	};
+	var PARTICLE_SIZE_MIN = 0.5;
+	var PARTICLE_SIZE_MAX = 4.0;
 
 	var DEFAULTS = {
 		schemaVersion: SCHEMA_VERSION,
@@ -17,10 +25,13 @@ bkcore.garage.GaragePreferences = (function() {
 		ship: {
 			colors: {
 				body: '#ffffff',
-				engine: '#00a2ff'
+				engine: '#00a2ff',
+				trail: '#ffffff'
 			},
-			trail: {
-				color: '#ffffff',
+			material: {
+				preset: 'metallic'
+			},
+			particles: {
 				size: 2
 			}
 		}
@@ -59,16 +70,33 @@ bkcore.garage.GaragePreferences = (function() {
 		return prefs.ship.colors;
 	}
 
+	function isValidPreset(value)
+	{
+		return typeof value === 'string' && VALID_MATERIAL_PRESETS[value] === true;
+	}
+
+	function isValidParticleSize(value)
+	{
+		return typeof value === 'number' && isFinite(value) && value >= PARTICLE_SIZE_MIN && value <= PARTICLE_SIZE_MAX;
+	}
+
 	function buildPrefs(prefs, options)
 	{
 		var defaults = clone(DEFAULTS);
 		var storedColors = getStoredColors(prefs);
 		var body = normalizeColor(storedColors.body);
 		var engine = normalizeColor(storedColors.engine);
+		var trail = normalizeColor(storedColors.trail);
 
-		var storedTrail = (prefs && prefs.ship && prefs.ship.trail) ? prefs.ship.trail : {};
-		var trailColor = normalizeColor(storedTrail.color);
-		var trailSize = typeof storedTrail.size === 'number' ? storedTrail.size : DEFAULTS.ship.trail.size;
+		var legacyTrail = (prefs && prefs.ship && prefs.ship.trail) ? prefs.ship.trail : {};
+		var legacyTrailColor = normalizeColor(legacyTrail.color);
+		var storedMaterial = (prefs && prefs.ship && prefs.ship.material) ? prefs.ship.material : {};
+		var storedParticles = (prefs && prefs.ship && prefs.ship.particles) ? prefs.ship.particles : {};
+		var materialPreset = isValidPreset(storedMaterial.preset) ? storedMaterial.preset : DEFAULTS.ship.material.preset;
+		var particleSize = isValidParticleSize(storedParticles.size) ? storedParticles.size : DEFAULTS.ship.particles.size;
+
+		if(!isValidParticleSize(storedParticles.size) && isValidParticleSize(legacyTrail.size))
+			particleSize = legacyTrail.size;
 
 		if(options && options.warnInvalidColors)
 		{
@@ -78,6 +106,14 @@ bkcore.garage.GaragePreferences = (function() {
 				warn('GaragePreferences: Invalid ship body color, using default.');
 			if(storedColors.engine !== undefined && !engine)
 				warn('GaragePreferences: Invalid engine color, using default.');
+			if(storedColors.trail !== undefined && !trail)
+				warn('GaragePreferences: Invalid trail color, using default.');
+			if(legacyTrail.color !== undefined && !legacyTrailColor && storedColors.trail === undefined)
+				warn('GaragePreferences: Invalid legacy trail color, using default.');
+			if(storedMaterial.preset !== undefined && !isValidPreset(storedMaterial.preset))
+				warn('GaragePreferences: Invalid material preset, using default.');
+			if(storedParticles.size !== undefined && !isValidParticleSize(storedParticles.size))
+				warn('GaragePreferences: Invalid particle size, using default.');
 		}
 
 		defaults.schemaVersion = SCHEMA_VERSION;
@@ -86,8 +122,9 @@ bkcore.garage.GaragePreferences = (function() {
 			: new Date().toISOString();
 		defaults.ship.colors.body = body || DEFAULTS.ship.colors.body;
 		defaults.ship.colors.engine = engine || DEFAULTS.ship.colors.engine;
-		defaults.ship.trail.color = trailColor || DEFAULTS.ship.trail.color;
-		defaults.ship.trail.size = trailSize;
+		defaults.ship.colors.trail = trail || legacyTrailColor || DEFAULTS.ship.colors.trail;
+		defaults.ship.material.preset = materialPreset;
+		defaults.ship.particles.size = particleSize;
 
 		return defaults;
 	}

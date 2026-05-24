@@ -43,6 +43,7 @@ bkcore.garage.GaragePreferences = (function() {
 	var PARTICLE_SIZE_MIN = 0.5;
 	var PARTICLE_SIZE_MAX = 4.0;
 
+	// Estructura canonica que comparten el garage, la pista y los efectos de particulas.
 	var DEFAULTS = {
 		schemaVersion: SCHEMA_VERSION,
 		lastUpdated: null,
@@ -112,6 +113,7 @@ bkcore.garage.GaragePreferences = (function() {
 		var engine = normalizeColor(storedColors.engine);
 		var trail = normalizeColor(storedColors.trail);
 
+		// Compatibilidad con guardados antiguos que usaban ship.trail en vez de ship.colors/ship.particles.
 		var legacyTrail = (prefs && prefs.ship && prefs.ship.trail) ? prefs.ship.trail : {};
 		var legacyTrailColor = normalizeColor(legacyTrail.color);
 		var storedMaterial = (prefs && prefs.ship && prefs.ship.material) ? prefs.ship.material : {};
@@ -168,6 +170,7 @@ bkcore.garage.GaragePreferences = (function() {
 				if(typeof window === 'undefined' || !window.localStorage)
 					return false;
 
+				// Algunos navegadores exponen localStorage pero lanzan errores en modo privado o politicas restrictivas.
 				var testKey = STORAGE_KEY + ':test';
 				window.localStorage.setItem(testKey, '1');
 				window.localStorage.removeItem(testKey);
@@ -207,6 +210,7 @@ bkcore.garage.GaragePreferences = (function() {
 				if(!this.isAvailable())
 					return false;
 
+				// Normalizamos antes de guardar para que otros modulos lean siempre una forma estable.
 				var normalized = buildPrefs(prefs, { warnInvalidColors: true });
 				normalized.lastUpdated = new Date().toISOString();
 

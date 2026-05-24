@@ -7,10 +7,12 @@
     "test": "playwright test",
     "test:garage": "playwright test tests/garage/",
     "test:unit": "jest",
-    "test:performance": "playwright test tests/performance/"
+    "test:performance": "playwright test tests/performance/",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@playwright/test": "^1.46.0",
+    "eslint": "^8.57.0",
     "http-server": "^14.1.1",
     "jest": "^30.4.2"
   }

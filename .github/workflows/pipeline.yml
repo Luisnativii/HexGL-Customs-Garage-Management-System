@@ -2,9 +2,9 @@ name: Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, Dev]
   pull_request:
-    branches: [main, develop]
+    branches: [master, Dev]
     types: [opened, synchronize]
 
 concurrency:

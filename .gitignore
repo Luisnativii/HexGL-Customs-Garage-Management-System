@@ -1,1 +1,12 @@
+# Dependencies
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/
+
+# macOS
 .DS_Store
+
+# Zip artifacts
+*.zip

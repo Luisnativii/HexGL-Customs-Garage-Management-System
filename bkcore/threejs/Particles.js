@@ -4,6 +4,8 @@
  * Particle system wrapper/helper
  * 
  * @author Thibaut 'BKcore' Despoulain <http://bkcore.com>
+ *
+ * Extended by Equipo Pepsiman under MIT License
  */
 
 /*!

@@ -112,6 +112,8 @@ bkcore.garage.GaragePreferences = (function() {
 		var engine = normalizeColor(storedColors.engine);
 		var trail = normalizeColor(storedColors.trail);
 
+		// Mantiene compatibilidad con preferencias guardadas antes de separar
+		// el rastro en colors.trail y particles.size.
 		var legacyTrail = (prefs && prefs.ship && prefs.ship.trail) ? prefs.ship.trail : {};
 		var legacyTrailColor = normalizeColor(legacyTrail.color);
 		var storedMaterial = (prefs && prefs.ship && prefs.ship.material) ? prefs.ship.material : {};
@@ -140,6 +142,8 @@ bkcore.garage.GaragePreferences = (function() {
 				warn('GaragePreferences: Invalid particle size, using default.');
 		}
 
+		// La salida siempre usa el esquema actual; asi el resto de la app
+		// puede leer una estructura estable aunque el localStorage venga parcial.
 		defaults.schemaVersion = SCHEMA_VERSION;
 		defaults.lastUpdated = prefs && typeof prefs.lastUpdated === 'string'
 			? prefs.lastUpdated

@@ -51,6 +51,8 @@
   function applyEngineColorToNode(node, engineColor, rootNode) {
     if (!node) return;
 
+    // Recorre la jerarquia de la nave para pintar luces y piezas auxiliares
+    // del motor sin tocar el material principal del fuselaje.
     if (node instanceof THREE.PointLight) {
       node.color.setHex(engineColor);
       console.log('launch.js: Applied booster light color 0x' + engineColor.toString(16));
@@ -93,6 +95,8 @@
         : 'metallic';
       console.log('launch.js: Applying garage customization', prefs);
 
+      // Las preferencias se aplican despues de hexGL.init(), cuando el track
+      // ya expuso los materiales reales usados por la nave en carrera.
       // Get the track object (contains materials)
       var track = hexGL.track;
       if (!track || !track.materials || !track.materials.ship) {
@@ -276,6 +280,8 @@
     try {
       var prefs = bkcore.garage.GaragePreferences.load();
       if (prefs && prefs.ship) {
+        // Estado auxiliar para mantener el panel sincronizado con el renderer
+        // incluso antes de que el usuario abra o guarde cambios.
         if (prefs.ship.colors && prefs.ship.colors.trail) {
           currentTrailColor = prefs.ship.colors.trail;
         } else if (prefs.ship.trail && prefs.ship.trail.color) {

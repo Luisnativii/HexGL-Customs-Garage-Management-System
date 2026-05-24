@@ -78,6 +78,8 @@
 
   function applyPrefsToCustomization(prefs)
   {
+    // Carga el estado normalizado desde GaragePreferences antes de crear
+    // mallas/particulas, asi la primera pintura ya sale con los valores guardados.
     customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
     customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
     if (prefs.ship && prefs.ship.colors && prefs.ship.colors.trail)
@@ -340,7 +342,8 @@
 
       var mat = garageMesh.material;
 
-      // Apply diffuseMultiplier from the active preset (e.g. stealth darkening)
+      // El preset "stealth" oscurece la pintura sin modificar el color guardado,
+      // para que al volver a otro material se recupere el tono original.
       var displayColor = hexColor;
       var preset = bkcore.garage && bkcore.garage.MaterialPresets
         ? bkcore.garage.MaterialPresets.get(garageMaterialPreset) : null;
@@ -571,6 +574,8 @@
         garageRainbowTime += 0.006;
         var uniforms = garageMesh.material.uniforms;
 
+        // El efecto holografico solo anima uniforms de shader; en materiales
+        // fallback se conserva el preset estatico aplicado previamente.
         var hue1 = (garageRainbowTime * 0.38) % 1.0;
         var hue2 = (garageRainbowTime * 1.1 + 0.33) % 1.0;
         var pulse = 0.5 + 0.5 * Math.sin(garageRainbowTime * 2.2);

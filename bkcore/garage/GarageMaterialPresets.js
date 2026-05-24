@@ -96,6 +96,8 @@ bkcore.garage.MaterialPresets = (function() {
 
 		var preset = getPreset(presetId);
 
+		// HexGL usa materiales shader personalizados; el garage tambien soporta
+		// MeshPhongMaterial como fallback, por eso se actualizan ambos caminos.
 		if(material.uniforms)
 		{
 			setUniformValue(material.uniforms.uShininess, preset.shininess);

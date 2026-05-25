@@ -2,10 +2,10 @@ name: Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, Dev]
   pull_request:
-    branches: [main, develop]
-    types: [opened, synchronize]
+    branches: [master, Dev]
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,7 +37,7 @@ jobs:
     name: E2E tests (Playwright)
     needs: lint_and_unit
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +73,7 @@ jobs:
     name: Performance tests (Playwright)
     needs: lint_and_unit
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -109,7 +109,7 @@ jobs:
     name: Deploy to Vercel
     needs: [e2e, performance]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
@@ -129,7 +129,7 @@ jobs:
     name: Tag release
     needs: deploy
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     steps:
       - uses: actions/checkout@v4
         with:

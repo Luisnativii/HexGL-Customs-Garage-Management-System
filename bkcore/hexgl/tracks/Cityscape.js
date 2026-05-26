@@ -368,6 +368,7 @@ bkcore.hexgl.tracks.Cityscape = {
 		var garageEngineColor = 0x00a2ff;
 		var garageMaterialPreset = 'metallic';
 
+		// La pista lee las preferencias al cargar para aplicar al gameplay lo elegido en el garage.
 		try {
 			if(bkcore.garage && bkcore.garage.GaragePreferences)
 			{
@@ -430,7 +431,7 @@ bkcore.hexgl.tracks.Cityscape = {
 		var boosterLight = new THREE.PointLight(0x00a2ff, 4.0, 60);
 		boosterLight.position.set(0, 0.665, -4);
 
-		// Apply garage customization loaded through GaragePreferences.
+		// Aplica la customizacion del garage a la nave, booster y luz para mantener consistente la escena de carrera.
 		try {
 			var shipMat = this.materials.ship;
 			if (shipMat instanceof THREE.ShaderMaterial && shipMat.uniforms && shipMat.uniforms['uDiffuseColor']) {

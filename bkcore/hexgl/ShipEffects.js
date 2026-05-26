@@ -41,6 +41,7 @@ bkcore.hexgl.ShipEffects = function(opts)
 		if(typeof bkcore !== 'undefined' && bkcore.garage && bkcore.garage.GaragePreferences)
 			garagePrefs = bkcore.garage.GaragePreferences.load();
 
+		// Estos valores vienen del garage para que el trail en carrera use la misma configuracion vista en preview.
 		var trailTint = 0xffffff;
 		var trailSize = 2;
 		if(garagePrefs && garagePrefs.ship)

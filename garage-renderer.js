@@ -37,6 +37,7 @@
   var garageMaterialPreset = 'metallic';
   var garageRainbowTime = 0;
 
+  // Convierte tonos HSL a hexadecimal para animar el preset holografico sin depender de librerias externas.
   function hslToHex(h, s, l) {
     var r, g, b;
     if (s === 0) {
@@ -78,6 +79,7 @@
 
   function applyPrefsToCustomization(prefs)
   {
+    // GaragePreferences ya normaliza los datos; aqui solo traducimos de strings "#rrggbb" al formato numerico de Three.js.
     customization.shipColor = hexStringToColorNumber(prefs.ship.colors.body);
     customization.boosterColor = hexStringToColorNumber(prefs.ship.colors.engine);
     if (prefs.ship && prefs.ship.colors && prefs.ship.colors.trail)
@@ -113,6 +115,7 @@
       var width = containerElement.clientWidth;
       var height = containerElement.clientHeight;
       
+      // El panel puede estar oculto durante la inicializacion; estos fallback evitan crear un canvas de 0x0.
       if (!width || width === 0) width = window.innerWidth * 0.9;
       if (!height || height === 0) height = window.innerHeight * 0.9;
       
@@ -231,6 +234,7 @@
 
         try { geometry.computeTangents(); } catch(e) { console.warn('computeTangents skipped:', e); }
 
+        // Reutilizamos las mismas texturas de la nave del juego para que la vista previa del garage coincida con carrera.
         var diffuseTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/diffuse.jpg');
         var specularTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/specular.jpg');
         var normalTexture = THREE.ImageUtils.loadTexture('textures.full/ships/feisar/normal.jpg');
@@ -245,6 +249,7 @@
 
         var shipMaterial;
         try {
+          // Preferimos el shader original de HexGL; el fallback mantiene el garage funcional si bkcore.Utils no carga.
           if (typeof bkcore !== 'undefined' && bkcore.Utils && bkcore.Utils.createNormalMaterial) {
             shipMaterial = bkcore.Utils.createNormalMaterial({
               diffuse: diffuseTexture,
@@ -410,6 +415,7 @@
          texCloud = THREE.ImageUtils.loadTexture("textures/particles/cloud.png");
       }
 
+      // Dos emisores simulan las salidas traseras de la nave y permiten previsualizar color/tamano antes de guardar.
       var leftTrail = new bkcore.threejs.Particles({
         max: 200,
         spawnRate: 2,
@@ -571,6 +577,7 @@
         garageRainbowTime += 0.006;
         var uniforms = garageMesh.material.uniforms;
 
+        // El preset holografico modifica uniforms cada frame para crear brillo cambiante sobre el shader existente.
         var hue1 = (garageRainbowTime * 0.38) % 1.0;
         var hue2 = (garageRainbowTime * 1.1 + 0.33) % 1.0;
         var pulse = 0.5 + 0.5 * Math.sin(garageRainbowTime * 2.2);

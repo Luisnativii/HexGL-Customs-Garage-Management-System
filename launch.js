@@ -274,6 +274,7 @@
 
   function loadGarageDetailState() {
     try {
+      // Carga el estado guardado para que los controles del panel abran sincronizados con la nave.
       var prefs = bkcore.garage.GaragePreferences.load();
       if (prefs && prefs.ship) {
         if (prefs.ship.colors && prefs.ship.colors.trail) {
@@ -312,11 +313,13 @@
     closePanelIfOpen();
     $('garage').style.display = 'none';
     $('step-1').style.display = 'block';
+    // Liberamos el canvas y el loop de animacion para no dejar renderers activos al volver al menu.
     GarageRenderer.destroy();
   }
 
   function preventGarageClickBubble(event) {
     if (!event) return;
+    // El menu principal tambien escucha clicks; detenerlos evita que un click dentro del garage dispare acciones externas.
     event.stopPropagation();
     if (event.stopImmediatePropagation) {
       event.stopImmediatePropagation();
@@ -481,6 +484,7 @@
     // ── Ship color swatches ──
     var shipGrid = $('ship-color-grid');
     if (shipGrid) {
+      // Delegacion de eventos: permite manejar todos los swatches aunque el HTML cambie o se reordene.
       shipGrid.addEventListener('click', function(event) {
         var swatch = event.target.closest('.color-swatch');
         if (!swatch) return;

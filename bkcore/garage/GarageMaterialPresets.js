@@ -33,6 +33,7 @@ bkcore.garage = bkcore.garage || {};
 bkcore.garage.MaterialPresets = (function() {
 	var DEFAULT_PRESET = 'metallic';
 
+	// Cada preset solo describe propiedades de material; el color base lo sigue controlando GarageRenderer.
 	var PRESETS = {
 		metallic: {
 			label: 'Metálico',
@@ -96,6 +97,7 @@ bkcore.garage.MaterialPresets = (function() {
 
 		var preset = getPreset(presetId);
 
+		// Los materiales del juego pueden ser ShaderMaterial o MeshPhongMaterial segun el entorno de carga.
 		if(material.uniforms)
 		{
 			setUniformValue(material.uniforms.uShininess, preset.shininess);
@@ -117,6 +119,7 @@ bkcore.garage.MaterialPresets = (function() {
 		if(material.metal !== undefined)
 			material.metal = preset.metal;
 
+		// Three.js r53 necesita esta marca para recalcular el material tras cambiar propiedades en caliente.
 		material.needsUpdate = true;
 	}
 
